@@ -133,7 +133,7 @@ export function VtexIO() {
               {vtexProfile.label}
             </div>
             <h1 className="vtex-reveal mt-6 max-w-[10ch] font-display text-[clamp(3.8rem,9vw,8.2rem)] font-black leading-[0.86] tracking-normal">
-              VTEX IO Commerce Lab
+              VTEX IO Commerce Lab 
             </h1>
             <p className="vtex-reveal mt-6 max-w-2xl text-balance text-lg font-semibold leading-snug text-[#142032]/72 md:text-2xl">
               {vtexProfile.intro}
