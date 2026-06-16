@@ -1,9 +1,10 @@
-import { Sparkles } from "lucide-react";
+import { Bot, Brush, Code2, MousePointerClick, ShoppingBag, Sparkles } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useRef } from "react";
 import { capabilities } from "../data/capabilities";
 import { gsap, ScrollTrigger, useGSAP } from "../lib/gsap";
 
+const icons = [ShoppingBag, Code2, MousePointerClick, Brush, Bot];
 const stackImages = [
   "/assets/project-collage.png",
   "/assets/cover-motion.png",
@@ -11,6 +12,9 @@ const stackImages = [
   "/assets/archive-design.png",
   "/assets/archive-ai-motion.png",
 ];
+
+const stackAngles = [-8, 5, -3, 7, -5];
+const toolCloud = Array.from(new Set(capabilities.flatMap((item) => item.tools)));
 
 export function CapabilityArchive() {
   const scope = useRef<HTMLElement>(null);
@@ -33,12 +37,13 @@ export function CapabilityArchive() {
             desktop: boolean;
           };
 
-          const panels = gsap.utils.toArray<HTMLElement>(".stack-copy-panel");
-          const steps = gsap.utils.toArray<HTMLElement>(".stack-workflow-step");
-          const imagePanels = gsap.utils.toArray<HTMLElement>(".stack-image-panel");
+          const spotlights = gsap.utils.toArray<HTMLElement>(".stack-studio-spotlight");
+          const images = gsap.utils.toArray<HTMLElement>(".stack-studio-image");
+          const cards = gsap.utils.toArray<HTMLElement>(".stack-studio-card");
+          const tools = gsap.utils.toArray<HTMLElement>(".stack-studio-tool");
 
           if (reduceMotion) {
-            gsap.set([panels, steps, imagePanels, ".stack-image-frame", ".stack-workflow-line-fill"], {
+            gsap.set([spotlights, images, cards, tools], {
               autoAlpha: 1,
               x: 0,
               y: 0,
@@ -48,11 +53,11 @@ export function CapabilityArchive() {
             return;
           }
 
-          gsap.from([".stack-reel-kicker", ".stack-workflow", ".stack-image-frame"], {
+          gsap.from(".stack-studio-reveal", {
             autoAlpha: 0,
-            y: 28,
+            y: 30,
             stagger: 0.08,
-            duration: 0.72,
+            duration: 0.74,
             ease: "power4.out",
             scrollTrigger: {
               trigger: root,
@@ -61,9 +66,33 @@ export function CapabilityArchive() {
             },
           });
 
-          gsap.to(".stack-image-media", {
-            scale: 1.08,
-            yPercent: -5,
+          gsap.from(tools, {
+            autoAlpha: 0,
+            y: 28,
+            scale: 0.82,
+            rotation: () => gsap.utils.random(-8, 8),
+            stagger: { each: 0.025, from: "random" },
+            duration: 0.62,
+            ease: "back.out(1.7)",
+            scrollTrigger: {
+              trigger: root,
+              start: "top 68%",
+              once: true,
+            },
+          });
+
+          gsap.to(tools, {
+            y: (index) => (index % 2 === 0 ? -10 : 10),
+            rotation: (index) => (index % 2 === 0 ? 2 : -2),
+            duration: 2.8,
+            ease: "sine.inOut",
+            repeat: -1,
+            yoyo: true,
+            stagger: 0.08,
+          });
+
+          gsap.to(".stack-studio-board", {
+            yPercent: -4,
             ease: "none",
             scrollTrigger: {
               trigger: root,
@@ -74,18 +103,15 @@ export function CapabilityArchive() {
           });
 
           if (!desktop) {
-            gsap.set(imagePanels, { autoAlpha: 0, scale: 1 });
-            gsap.set(imagePanels[0], { autoAlpha: 1 });
-
-            panels.forEach((panel) => {
-              gsap.from(panel, {
+            cards.forEach((card) => {
+              gsap.from(card, {
                 autoAlpha: 0,
-                y: 54,
+                y: 48,
                 scale: 0.96,
-                duration: 0.72,
+                duration: 0.64,
                 ease: "power3.out",
                 scrollTrigger: {
-                  trigger: panel,
+                  trigger: card,
                   start: "top 82%",
                   toggleActions: "play none none reverse",
                 },
@@ -94,108 +120,64 @@ export function CapabilityArchive() {
             return;
           }
 
-          gsap.set(panels, {
-            autoAlpha: 0,
-            y: 80,
-            scale: 0.94,
-            rotation: 2,
-            transformOrigin: "left center",
-          });
-          gsap.set(panels[0], { autoAlpha: 1, y: 0, scale: 1, rotation: 0 });
-          gsap.set(steps, { autoAlpha: 0.48 });
-          gsap.set(steps[0], { autoAlpha: 1 });
-          gsap.set(imagePanels, { autoAlpha: 0, scale: 1.06, xPercent: 4, rotation: 1.2 });
-          gsap.set(imagePanels[0], { autoAlpha: 1, scale: 1, xPercent: 0, rotation: 0 });
-          gsap.set(".stack-workflow-line-fill", { scaleX: 1 / panels.length, transformOrigin: "left center" });
+          gsap.set(spotlights, { autoAlpha: 0, y: 36, scale: 0.96 });
+          gsap.set(spotlights[0], { autoAlpha: 1, y: 0, scale: 1 });
+          gsap.set(images, { autoAlpha: 0, scale: 1.06, rotation: 3 });
+          gsap.set(images[0], { autoAlpha: 1, scale: 1, rotation: 0 });
+          gsap.set(cards, { autoAlpha: 0.42, y: 0, scale: 1 });
+          gsap.set(cards[0], { autoAlpha: 1, y: -8, scale: 1.03 });
 
           const timeline = gsap.timeline({
             scrollTrigger: {
               trigger: root,
               start: "top top",
-              end: () => `+=${panels.length * 640}`,
-              scrub: 0.85,
+              end: () => `+=${capabilities.length * 520}`,
+              scrub: 0.8,
               pin: true,
               anticipatePin: 1,
             },
           });
 
-          panels.forEach((panel, index) => {
+          capabilities.forEach((item, index) => {
             if (index === 0) return;
 
             timeline
-              .to(
-                panels[index - 1],
-                {
-                  autoAlpha: 0,
-                  y: -72,
-                  scale: 0.94,
-                  rotation: -2,
-                  duration: 0.58,
-                  ease: "power3.inOut",
-                },
-                `skill-${index}`,
-              )
+              .to(spotlights[index - 1], { autoAlpha: 0, y: -34, scale: 0.96, duration: 0.46, ease: "power3.inOut" }, `stack-${index}`)
               .fromTo(
-                panel,
-                {
-                  autoAlpha: 0,
-                  y: 86,
-                  scale: 0.94,
-                  rotation: 2,
-                },
-                {
-                  autoAlpha: 1,
-                  y: 0,
-                  scale: 1,
-                  rotation: 0,
-                  duration: 0.68,
-                  ease: "power4.out",
-                },
-                `skill-${index}+=0.08`,
+                spotlights[index],
+                { autoAlpha: 0, y: 42, scale: 0.96 },
+                { autoAlpha: 1, y: 0, scale: 1, duration: 0.58, ease: "power4.out" },
+                `stack-${index}+=0.08`,
               )
-              .to(steps[index - 1], { autoAlpha: 0.48, duration: 0.24 }, `skill-${index}`)
-              .to(steps[index], { autoAlpha: 1, duration: 0.32 }, `skill-${index}+=0.12`)
-              .to(".stack-workflow-line-fill", { scaleX: (index + 1) / panels.length, duration: 0.68, ease: "none" }, `skill-${index}`)
-              .to(
-                imagePanels[index - 1],
-                {
-                  autoAlpha: 0,
-                  scale: 1.08,
-                  xPercent: -4,
-                  rotation: -1.2,
-                  duration: 0.58,
-                  ease: "power3.inOut",
-                },
-                `skill-${index}`,
-              )
+              .to(images[index - 1], { autoAlpha: 0, scale: 1.08, rotation: -3, duration: 0.48, ease: "power3.inOut" }, `stack-${index}`)
               .fromTo(
-                imagePanels[index],
-                {
-                  autoAlpha: 0,
-                  scale: 1.08,
-                  xPercent: 5,
-                  rotation: 1.4,
-                },
-                {
-                  autoAlpha: 1,
-                  scale: 1,
-                  xPercent: 0,
-                  rotation: 0,
-                  duration: 0.74,
-                  ease: "power3.out",
-                },
-                `skill-${index}+=0.06`,
+                images[index],
+                { autoAlpha: 0, scale: 1.08, rotation: stackAngles[index] },
+                { autoAlpha: 1, scale: 1, rotation: 0, duration: 0.66, ease: "power3.out" },
+                `stack-${index}+=0.05`,
               )
+              .to(cards[index - 1], { autoAlpha: 0.42, y: 0, scale: 1, duration: 0.28 }, `stack-${index}`)
+              .to(cards[index], { autoAlpha: 1, y: -8, scale: 1.03, duration: 0.32 }, `stack-${index}+=0.1`)
               .to(
-                ".stack-image-frame",
+                ".stack-studio-board",
                 {
-                  "--active-accent": capabilities[index].accent,
-                  rotation: index % 2 === 0 ? -1.2 : 1.2,
-                  scale: 1 + index * 0.006,
-                  duration: 0.68,
+                  "--studio-accent": item.accent,
+                  duration: 0.58,
                   ease: "power2.inOut",
                 },
-                `skill-${index}`,
+                `stack-${index}`,
+              )
+              .to(
+                tools,
+                {
+                  x: () => gsap.utils.random(-28, 28),
+                  y: () => gsap.utils.random(-20, 20),
+                  rotation: () => gsap.utils.random(-9, 9),
+                  stagger: { each: 0.01, from: "random" },
+                  duration: 0.52,
+                  ease: "power2.inOut",
+                },
+                `stack-${index}`,
               );
           });
 
@@ -209,57 +191,33 @@ export function CapabilityArchive() {
   );
 
   return (
-    <section ref={scope} className="stack-reel-section relative overflow-hidden bg-white">
-      <div className="stack-reel-backdrop absolute inset-0" />
-      <div className="stack-reel-pin relative min-h-[100dvh] px-5 py-20 md:py-24">
-        <div className="relative mx-auto flex min-h-[calc(100dvh-8rem)] max-w-7xl flex-col justify-center gap-8">
-          <div className="stack-reel-top relative z-30">
-            <p className="stack-reel-kicker eyebrow mb-4 inline-flex items-center gap-2 rounded-full border border-ink/10 bg-white/85 px-4 py-2 shadow-soft backdrop-blur">
-              <Sparkles size={15} />
-              Workflow de habilidades
-            </p>
+    <section ref={scope} className="stack-studio-section relative overflow-hidden bg-white px-5 py-20 md:py-24">
+      <div className="stack-studio-backdrop absolute inset-0" />
+      <div className="relative mx-auto grid min-h-[calc(100dvh-7rem)] max-w-7xl gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
+        <div className="relative z-20">
+          <p className="stack-studio-reveal eyebrow inline-flex items-center gap-2 rounded-full border border-ink/10 bg-white/85 px-4 py-2 shadow-soft backdrop-blur">
+            <Sparkles size={15} />
+            Stack aplicado
+          </p>
+          <h2 className="stack-studio-reveal mt-5 max-w-[9ch] font-display text-[clamp(3.35rem,6.8vw,7.15rem)] font-black leading-[0.84]">
+            Lo que uso se nota en lo que hago.
+          </h2>
 
-            <div className="stack-workflow relative overflow-hidden rounded-[1.25rem] border border-ink/10 bg-white/76 p-2 shadow-soft backdrop-blur">
-              <div className="stack-workflow-line absolute left-5 right-5 top-1/2 h-px -translate-y-1/2 bg-ink/10" />
-              <div className="stack-workflow-line-fill absolute left-5 top-1/2 h-[3px] w-[calc(100%-2.5rem)] -translate-y-1/2 rounded-full bg-ink" />
-              <div className="stack-workflow-steps relative z-10 flex gap-2 overflow-x-auto lg:grid lg:grid-cols-5">
-                {capabilities.map((item, index) => (
-                  <div
-                    key={item.name}
-                    className="stack-workflow-step rounded-[1rem] border border-ink/10 bg-paper/90 px-4 py-3 shadow-[0_12px_28px_rgba(21,21,21,0.06)]"
-                    style={{ "--accent": item.accent } as CSSProperties}
-                  >
-                    <span className="block text-xs font-black text-[color:var(--accent)]">{String(index + 1).padStart(2, "0")}</span>
-                    <span className="mt-1 block text-sm font-black uppercase leading-tight text-ink">{item.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <div className="stack-studio-copy mt-8 min-h-[320px] lg:min-h-[360px]">
+            {capabilities.map((item, index) => {
+              const Icon = icons[index] ?? Sparkles;
 
-          <div className="relative z-20 grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-12">
-            <div className="stack-copy-stage relative min-h-[530px] lg:min-h-[560px]">
-              {capabilities.map((item, index) => (
-                <article
-                  key={item.name}
-                  className="stack-copy-panel absolute inset-0 flex flex-col justify-center"
-                  style={{ "--accent": item.accent } as CSSProperties}
-                >
-                  <div className="mb-6 flex items-center gap-3">
-                    <span className="rounded-full bg-[color:var(--accent)] px-4 py-2 text-xs font-black uppercase text-white shadow-soft">
-                      {item.short}
+              return (
+                <article key={item.name} className="stack-studio-spotlight absolute max-w-xl" style={{ "--accent": item.accent } as CSSProperties}>
+                  <div className="mb-5 flex items-center gap-3">
+                    <span className="grid size-12 place-items-center rounded-full bg-[color:var(--accent)] text-white shadow-soft">
+                      <Icon size={21} strokeWidth={2.6} />
                     </span>
-                    <span className="font-display text-7xl font-black leading-none text-ink/10">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
+                    <span className="font-display text-6xl font-black leading-none text-ink/10">{String(index + 1).padStart(2, "0")}</span>
                   </div>
-                  <h2 className="max-w-[9ch] font-display text-[clamp(4.2rem,8vw,8.4rem)] font-black leading-[0.8] text-ink">
-                    {item.name}
-                  </h2>
-                  <p className="mt-6 max-w-2xl text-balance text-xl font-semibold leading-snug text-ink/66 md:text-2xl">
-                    {item.description}
-                  </p>
-                  <div className="mt-8 flex flex-wrap gap-2">
+                  <h3 className="font-display text-[clamp(3.35rem,5.8vw,6.15rem)] font-black leading-[0.84]">{item.name}</h3>
+                  <p className="mt-5 text-balance text-lg font-semibold leading-snug text-ink/66 md:text-2xl">{item.description}</p>
+                  <div className="mt-7 flex flex-wrap gap-2">
                     {item.tools.map((tool) => (
                       <span key={tool} className="rounded-full border border-ink/10 bg-white/82 px-4 py-2 text-sm font-black shadow-soft">
                         {tool}
@@ -267,29 +225,61 @@ export function CapabilityArchive() {
                     ))}
                   </div>
                 </article>
-              ))}
-            </div>
+              );
+            })}
+          </div>
 
-            <div
-              className="stack-image-frame relative min-h-[520px] overflow-hidden rounded-[2rem] border border-ink/10 bg-paper shadow-sticker lg:min-h-[620px]"
-              style={{ "--active-accent": capabilities[0].accent } as CSSProperties}
-            >
-              <div className="stack-image-accent absolute inset-0" />
-              {capabilities.map((item, index) => (
-                <figure key={item.name} className="stack-image-panel absolute inset-0">
-                  <img
-                    className="stack-image-media absolute inset-0 h-full w-full object-cover"
-                    src={stackImages[index] ?? stackImages[0]}
-                    alt={`Visual de ${item.name}`}
-                  />
-                </figure>
-              ))}
-              <div className="absolute inset-4 rounded-[1.55rem] border border-white/50" />
-              <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between rounded-full bg-white/82 px-5 py-3 text-sm font-black shadow-soft backdrop-blur">
-                <span>Archivo visual</span>
-                <span className="text-[color:var(--active-accent)]">Mario Rojas</span>
-              </div>
-            </div>
+          <div className="stack-studio-reveal mt-6 grid gap-2 sm:grid-cols-2">
+            {capabilities.map((item, index) => (
+              <button
+                key={item.name}
+                type="button"
+                className="stack-studio-card flex items-center gap-3 rounded-[1.1rem] border border-ink/10 bg-paper/82 px-4 py-3 text-left shadow-[0_14px_34px_rgba(21,21,21,0.07)] backdrop-blur"
+                style={{ "--accent": item.accent } as CSSProperties}
+              >
+                <span className="font-display text-2xl font-black text-[color:var(--accent)]">{String(index + 1).padStart(2, "0")}</span>
+                <span className="text-sm font-black uppercase leading-tight text-ink">{item.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div
+          className="stack-studio-board relative z-10 min-h-[540px] overflow-hidden rounded-[2rem] border border-ink/10 bg-paper shadow-sticker lg:min-h-[690px]"
+          style={{ "--studio-accent": capabilities[0].accent } as CSSProperties}
+        >
+          <div className="stack-studio-board-accent absolute inset-0" />
+          <div className="stack-studio-image-wrap absolute inset-5 overflow-hidden rounded-[1.6rem] border border-white/60">
+            {capabilities.map((item, index) => (
+              <img
+                key={item.name}
+                className="stack-studio-image absolute inset-0 h-full w-full object-cover"
+                src={stackImages[index] ?? stackImages[0]}
+                alt={`Visual de ${item.name}`}
+              />
+            ))}
+          </div>
+
+          <div className="stack-studio-tools pointer-events-none absolute inset-0">
+            {toolCloud.map((tool, index) => (
+              <span
+                key={tool}
+                className="stack-studio-tool absolute rounded-full border border-ink/10 bg-white/86 px-4 py-2 text-xs font-black uppercase shadow-soft backdrop-blur"
+                style={
+                  {
+                    "--x": `${9 + (index * 19) % 78}%`,
+                    "--y": `${10 + (index * 31) % 78}%`,
+                  } as CSSProperties
+                }
+              >
+                {tool}
+              </span>
+            ))}
+          </div>
+
+          <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between rounded-full bg-white/84 px-5 py-3 text-sm font-black shadow-soft backdrop-blur">
+            <span>Mesa de herramientas</span>
+            <span className="text-[color:var(--studio-accent)]">Scroll para mezclar</span>
           </div>
         </div>
       </div>

@@ -298,11 +298,11 @@
   min-height: 0;
 }
 
-.stack-reel-section {
+.stack-studio-section {
   perspective: 1500px;
 }
 
-.stack-reel-backdrop {
+.stack-studio-backdrop {
   background:
     linear-gradient(180deg, #ffffff 0%, #fff8e9 45%, #f4fbff 100%),
     linear-gradient(90deg, rgba(21, 21, 21, 0.05) 1px, transparent 1px),
@@ -310,72 +310,67 @@
   background-size: auto, 46px 46px, 46px 46px;
 }
 
-.stack-workflow {
-  isolation: isolate;
-}
-
-.stack-workflow-line,
-.stack-workflow-line-fill {
-  pointer-events: none;
-}
-
-.stack-workflow-line-fill {
-  transform-origin: left center;
-  will-change: transform;
-}
-
-.stack-workflow-steps {
-  scrollbar-width: none;
-}
-
-.stack-workflow-steps::-webkit-scrollbar {
-  display: none;
-}
-
-.stack-workflow-step {
-  min-width: min(260px, 72vw);
-  will-change: opacity, transform;
-}
-
-.stack-copy-stage {
+.stack-studio-copy {
+  position: relative;
   transform-style: preserve-3d;
 }
 
-.stack-copy-panel {
+.stack-studio-spotlight {
   will-change: opacity, transform;
 }
 
-.stack-image-frame {
-  --active-accent: #f71963;
+.stack-studio-card {
+  cursor: default;
+}
+
+.stack-studio-card {
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.stack-studio-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 42%, rgba(21, 21, 21, 0.12));
+  background: #ffffff;
+}
+
+.stack-studio-board {
+  --studio-accent: #f71963;
   transform-origin: center;
   will-change: transform;
 }
 
-.stack-image-media {
-  z-index: 0;
-  will-change: transform;
-}
-
-.stack-image-panel {
-  z-index: 0;
-  will-change: opacity, transform;
-}
-
-.stack-image-frame > .stack-image-panel {
-  z-index: 0;
-}
-
-.stack-image-accent {
+.stack-studio-board-accent {
   z-index: 1;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--active-accent) 34%, transparent), transparent 48%),
-    linear-gradient(0deg, rgba(255, 255, 255, 0.24), transparent 55%);
+    linear-gradient(135deg, color-mix(in srgb, var(--studio-accent) 34%, transparent), transparent 46%),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.3), transparent 60%);
   mix-blend-mode: multiply;
   pointer-events: none;
 }
 
-.stack-image-frame > :not(.stack-image-panel):not(.stack-image-media):not(.stack-image-accent) {
-  z-index: 2;
+.stack-studio-image {
+  will-change: opacity, transform;
+}
+
+.stack-studio-tool {
+  left: var(--x);
+  top: var(--y);
+  z-index: 4;
+  transform: translate(-50%, -50%) rotate(-2deg);
+  will-change: opacity, transform;
+}
+
+.stack-studio-tool:nth-child(3n + 1) {
+  color: #f71963;
+}
+
+.stack-studio-tool:nth-child(3n + 2) {
+  color: #3567ff;
+}
+
+.stack-studio-tool:nth-child(3n + 3) {
+  color: #13a06f;
 }
 
 @media (max-height: 860px) and (min-width: 768px) {
@@ -583,69 +578,54 @@
     transform: none !important;
   }
 
-  .stack-reel-pin {
-    min-height: auto;
+  .stack-studio-section {
     padding-top: 4.5rem;
     padding-bottom: 4.5rem;
   }
 
-  .stack-copy-stage {
+  .stack-studio-copy {
     min-height: auto;
   }
 
-  .stack-copy-stage {
-    display: grid;
-    gap: 1rem;
-  }
-
-  .stack-copy-panel {
+  .stack-studio-spotlight {
     position: relative;
-    min-height: auto;
+    max-width: none;
     padding-block: 1.5rem;
   }
 
-  .stack-copy-panel h2 {
-    max-width: 9ch;
-    font-size: clamp(3rem, 13.2vw, 4.65rem);
+  .stack-studio-spotlight h3 {
+    font-size: clamp(3rem, 13vw, 4.7rem);
   }
 
-  .stack-image-frame {
-    min-height: 390px;
+  .stack-studio-board {
+    min-height: 420px;
+  }
+
+  .stack-studio-tools {
+    display: none;
   }
 }
 
 @media (max-width: 1023px) {
-  .stack-reel-pin {
+  .stack-studio-copy {
     min-height: auto;
   }
 
-  .stack-workflow-line,
-  .stack-workflow-line-fill {
-    display: none;
-  }
-
-  .stack-copy-stage {
-    min-height: auto;
-  }
-
-  .stack-copy-stage {
-    display: grid;
-    gap: 1rem;
-  }
-
-  .stack-copy-panel {
+  .stack-studio-spotlight {
     position: relative;
-    min-height: auto;
     padding-block: 1.5rem;
   }
 
-  .stack-copy-panel h2 {
-    max-width: 10ch;
-    font-size: clamp(3.25rem, 11vw, 5.5rem);
+  .stack-studio-spotlight h3 {
+    font-size: clamp(3.1rem, 11vw, 5.55rem);
   }
 
-  .stack-image-frame {
+  .stack-studio-board {
     min-height: 430px;
+  }
+
+  .stack-studio-tools {
+    display: none;
   }
 }
 
