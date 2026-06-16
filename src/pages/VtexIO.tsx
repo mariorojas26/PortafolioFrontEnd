@@ -138,7 +138,7 @@ export function VtexIO() {
             <p className="vtex-reveal mt-6 max-w-2xl text-balance text-lg font-semibold leading-snug text-[#142032]/72 md:text-2xl">
               {vtexProfile.intro}
             </p>
-            <div className="vtex-reveal mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <div className="vtex-reveal mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap"> 
               <MagneticLink to="/proyectos">Ver casos VTEX</MagneticLink>
               <a className="magnetic-link bg-[#F71963] text-white hover:bg-[#142032]" href="mailto:hola@mariorojas.dev">
                 <span>Hablemos de eCommerce</span>
