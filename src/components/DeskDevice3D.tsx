@@ -20,7 +20,7 @@ declare global {
   }
 }
 
-type DeviceAssetId = Exclude<Desk3DAssetId, "car">;
+type DeviceAssetId = Exclude<Desk3DAssetId, "car" | "trophy">;
 
 const ASSET_URLS: Record<DeviceAssetId, string> = {
   stand: "/assets/3d/mobile__cell_phone_stand.glb",
@@ -31,10 +31,11 @@ const ASSET_LABELS: Record<Desk3DAssetId, string> = {
   stand: "Base",
   phone: "Telefono",
   car: "Carro Supra",
+  trophy: "Trofeo VTEX",
 };
 
 const DEVICE_ASSET_IDS: DeviceAssetId[] = ["stand", "phone"];
-const TUNER_ASSET_IDS: Desk3DAssetId[] = ["stand", "phone", "car"];
+const TUNER_ASSET_IDS: Desk3DAssetId[] = ["stand", "phone", "car", "trophy"];
 const TUNER_MODES = ["assets", "lighting", "shadow"] as const;
 
 type TunerMode = (typeof TUNER_MODES)[number];
@@ -77,6 +78,7 @@ function cloneTransforms(source: Desk3DTransforms): Desk3DTransforms {
       stand: { ...source.shadows.stand },
       phone: { ...source.shadows.phone },
       car: { ...source.shadows.car },
+      trophy: { ...source.shadows.trophy },
     },
     assets: {
       stand: {
@@ -96,6 +98,12 @@ function cloneTransforms(source: Desk3DTransforms): Desk3DTransforms {
         rotation: [...source.assets.car.rotation],
         scale: source.assets.car.scale,
         color: source.assets.car.color,
+      },
+      trophy: {
+        position: [...source.assets.trophy.position],
+        rotation: [...source.assets.trophy.rotation],
+        scale: source.assets.trophy.scale,
+        color: source.assets.trophy.color,
       },
     },
   };
@@ -222,7 +230,7 @@ function AssetTuner({
   onChangeLighting: (key: keyof Desk3DTransforms["lighting"], value: number) => void;
   onChangeShadow: (assetId: Desk3DAssetId, key: keyof Desk3DShadowTransform, value: number) => void;
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<TunerMode>("assets");
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [panelPosition, setPanelPosition] = useState<{ x: number; y: number } | null>(null);
@@ -366,12 +374,14 @@ function AssetTuner({
                 <input type="number" step={0.01} value={activeTransform.scale} onChange={(event) => updateScale(Number(event.target.value))} />
                 <input type="range" min={0.05} max={4} step={0.01} value={activeTransform.scale} onChange={(event) => updateScale(Number(event.target.value))} />
               </label>
-              {selectedAsset !== "car" ? (
+              {selectedAsset !== "car" && selectedAsset !== "trophy" ? (
                 <label className="asset-tuner__color-row">
                   Color
                   <input type="color" value={activeTransform.color} onChange={(event) => updateColor(event.target.value)} />
                   <input type="text" value={activeTransform.color} onChange={(event) => updateColor(event.target.value)} />
                 </label>
+              ) : selectedAsset === "trophy" ? (
+                <p className="asset-tuner__hint">Color bloqueado para conservar el material VTEX del trofeo.</p>
               ) : (
                 <p className="asset-tuner__hint">Color bloqueado para conservar la livery del Supra.</p>
               )}

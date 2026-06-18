@@ -1,9 +1,10 @@
 import { BriefcaseBusiness, Code2, Home, Mail, Rocket, UserRound, Wrench } from "lucide-react";
-import type { ImgHTMLAttributes, SyntheticEvent } from "react";
+import type { ImgHTMLAttributes, SyntheticEvent, UIEvent } from "react";
 import { useRef, useState } from "react";
-import { gsap, useGSAP } from "../lib/gsap";
+import { gsap, ScrollTrigger, useGSAP } from "../lib/gsap";
 import { DeskDevice3D } from "./DeskDevice3D";
 import { MonitorToyCar3D } from "./MonitorToyCar3D";
+import { VtexTrophy3D } from "./VtexTrophy3D";
 
 const roomAssets = {
   base: "/assets/Habitacion/Fondobase2.png",
@@ -11,16 +12,61 @@ const roomAssets = {
 };
 
 const navItems = [
-  { label: "Inicio", icon: Home, to: "#inicio" },
-  { label: "Sobre mi", icon: UserRound, to: "#sobre-mi" },
-  { label: "Proyectos", icon: Rocket, to: "#proyectos" },
-  { label: "Skills", icon: Code2, to: "#skills" },
-  { label: "Experiencia", icon: BriefcaseBusiness, to: "#experiencia" },
-  { label: "VTEX", icon: Wrench, to: "#vtex" },
-  { label: "Contacto", icon: Mail, to: "mailto:hola@mariorojas.dev" },
+  { label: "Inicio", icon: Home, id: "inicio" },
+  { label: "Sobre mi", icon: UserRound, id: "sobre-mi" },
+  { label: "Proyectos", icon: Rocket, id: "proyectos" },
+  { label: "Skills", icon: Code2, id: "skills" },
+  { label: "Experiencia", icon: BriefcaseBusiness, id: "experiencia" },
+  { label: "VTEX IO", icon: Wrench, id: "vtex" },
+  { label: "Contacto", icon: Mail, id: "contacto" },
 ];
 
 const techStack = ["React", "TypeScript", "GSAP", "VTEX IO", "UX/UI", "IA"];
+const screenStats = [
+  { value: "+20", label: "Proyectos completados", icon: Code2 },
+  { value: "+5", label: "Anos de experiencia", icon: BriefcaseBusiness },
+  { value: "100%", label: "Compromiso y dedicacion", icon: Rocket },
+];
+
+const screenSections = [
+  {
+    id: "sobre-mi",
+    eyebrow: "Sobre mi",
+    title: "Diseno, codigo y direccion visual",
+    copy: "Conecto front-end, UX, IA y criterio grafico para crear experiencias digitales que se sienten vivas, claras y faciles de explorar.",
+  },
+  {
+    id: "proyectos",
+    eyebrow: "Proyectos",
+    title: "Interfaces con actitud",
+    copy: "Landing pages, eCommerce, experiencias interactivas, motion systems y productos que venden sin sentirse genericos.",
+  },
+  {
+    id: "skills",
+    eyebrow: "Skills",
+    title: "Stack creativo",
+    copy: "React, TypeScript, GSAP, VTEX IO, UX/UI, Figma, Photoshop, IA aplicada, automatizacion y arquitectura front-end.",
+  },
+  {
+    id: "experiencia",
+    eyebrow: "Experiencia",
+    title: "Del concepto al deploy",
+    copy: "Trabajo desde discovery y sistemas visuales hasta componentes reutilizables, performance, integracion e iteracion con equipos reales.",
+  },
+  {
+    id: "vtex",
+    eyebrow: "VTEX IO",
+    title: "Mi fuerte eCommerce",
+    copy: "Componentes configurables, PDP, PLP, checkout, Site Editor, Master Data, GraphQL y arquitectura pensada para escalar.",
+  },
+  {
+    id: "contacto",
+    eyebrow: "Contacto",
+    title: "Hablemos de una experiencia distinta",
+    copy: "Si el proyecto pide impacto, claridad y algo que se sienta vivo, ahi es donde entro.",
+  },
+];
+const screenNavOrder = ["inicio", ...screenSections.map((section) => section.id)];
 
 type SmartAssetImageProps = ImgHTMLAttributes<HTMLImageElement> & {
   src: string;
@@ -51,6 +97,36 @@ function SmartAssetImage({ src, preferPngVariant = true, onError, ...props }: Sm
 
 export function RoomPortfolioHero() {
   const scope = useRef<HTMLElement>(null);
+  const [activeScreenSection, setActiveScreenSection] = useState("inicio");
+
+  const handleScreenNav = (sectionId: string) => {
+    const target = scope.current?.querySelector<HTMLElement>(`#screen-${sectionId}`);
+    const scroller = scope.current?.querySelector<HTMLElement>(".room-screen-scroll");
+    if (!target || !scroller) return;
+
+    setActiveScreenSection(sectionId);
+    scroller.scrollTo({
+      top: sectionId === "inicio" ? 0 : Math.max(target.offsetTop - 16, 0),
+      behavior: "smooth",
+    });
+  };
+
+  const handleScreenScroll = (event: UIEvent<HTMLDivElement>) => {
+    const scroller = event.currentTarget;
+    const activationLine = scroller.scrollTop + scroller.clientHeight * 0.3;
+    let nextSection = "inicio";
+
+    for (const sectionId of screenNavOrder) {
+      const section = scroller.querySelector<HTMLElement>(`#screen-${sectionId}`);
+      if (section && section.offsetTop <= activationLine) {
+        nextSection = sectionId;
+      }
+    }
+
+    if (nextSection !== activeScreenSection) {
+      setActiveScreenSection(nextSection);
+    }
+  };
 
   useGSAP(
     () => {
@@ -96,6 +172,43 @@ export function RoomPortfolioHero() {
       const layerY = layers.map((layer, index) => gsap.quickTo(layer, "y", { duration: 0.2 + index * 0.01, ease: "power2.out" }));
       const baseLockedX = baseLockedLayers.map((layer) => gsap.quickTo(layer, "x", { duration: 0.18, ease: "power2.out" }));
       const baseLockedY = baseLockedLayers.map((layer) => gsap.quickTo(layer, "y", { duration: 0.18, ease: "power2.out" }));
+
+      gsap.set(scene, { transformOrigin: "50% 34%" });
+
+      const focusTimeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: root,
+          start: "top top",
+          end: "+=115%",
+          scrub: 0.85,
+          pin: true,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            root.classList.toggle("is-screen-focused", self.progress > 0.72);
+          },
+          onLeaveBack: () => {
+            root.classList.remove("is-screen-focused");
+          },
+        },
+      });
+
+      focusTimeline
+        .to(
+          scene,
+          {
+            scale: () => (window.innerWidth < 768 ? 1.18 : 1.72),
+            x: () => (window.innerWidth < 768 ? 0 : window.innerWidth * -0.02),
+            y: () => (window.innerWidth < 768 ? window.innerHeight * 0.04 : window.innerHeight * 0.18),
+            ease: "none",
+          },
+          0,
+        )
+        .to(".room-device-stage, .room-toy-car-stage, .room-vtex-trophy-stage, .room-object-lamp", { autoAlpha: 0, ease: "none" }, 0.08)
+        .to(".room-screen-ui", { backgroundColor: "rgba(11, 7, 20, 0.985)", ease: "none" }, 0)
+        .to(".room-vignette", { opacity: 0.62, ease: "none" }, 0);
+
+      ScrollTrigger.refresh();
 
       const edgeIntent = (value: number) => {
         const deadZone = 0.1;
@@ -161,91 +274,86 @@ export function RoomPortfolioHero() {
           <div className="room-monitor-pan absolute inset-0">
             <div className="room-monitor-glow absolute inset-[6%] rounded-[1.4rem] bg-[#8b5cf6]/30 blur-3xl" />
             <div className="room-screen-ui absolute inset-0 z-20 overflow-hidden rounded-[0.9rem] border border-white/10 bg-[#0b0714]/94 shadow-[0_30px_90px_rgba(0,0,0,.45)]">
-              <div className="grid h-full grid-cols-[28%_72%]">
-                <aside className="room-screen-sidebar border-r border-white/10 bg-black/22">
-                  <div className="room-reveal flex items-center gap-2 font-black uppercase tracking-normal text-[#ffb12d]">
-                    <Code2 size={18} />
-                    Mario
-                  </div>
-                  <nav className="room-screen-nav mt-6 grid gap-1.5">
-                    {navItems.map((item, index) => {
-                      const Icon = item.icon;
-                      const content = (
-                        <>
-                          <Icon size={17} />
-                          <span>{item.label}</span>
-                        </>
-                      );
+              <div className="room-screen-grid absolute inset-0 opacity-55" />
+              <header className="room-screen-header room-reveal">
+                <button className="room-screen-brand" type="button" onClick={() => handleScreenNav("inicio")}>
+                  <span className="room-screen-brand-mark">MR</span>
+                  <span className="room-screen-brand-copy">
+                    <strong>Mario</strong>
+                    <small>Portfolio creativo</small>
+                  </span>
+                </button>
 
-                      const className = `room-reveal flex items-center gap-3 rounded-[0.7rem] px-3 py-2 text-sm font-semibold transition-colors ${
-                        index === 0 ? "bg-white/12 text-[#ffb12d]" : "text-white/78 hover:bg-white/10 hover:text-white"
-                      }`;
-
+                <nav className="room-screen-nav" aria-label="Navegacion dentro del monitor">
+                  {navItems.map((item) => {
+                    const Icon = item.icon;
                     return (
-                      <a key={item.label} className={className} href={item.to}>
-                        {content}
-                      </a>
+                      <button key={item.id} aria-current={activeScreenSection === item.id ? "page" : undefined} className={activeScreenSection === item.id ? "is-active" : ""} type="button" onClick={() => handleScreenNav(item.id)}>
+                        <Icon size={14} />
+                        <span>{item.label}</span>
+                      </button>
                     );
                   })}
-                  </nav>
+                </nav>
+              </header>
 
-                  <div className="room-screen-tech room-reveal mt-4 border-t border-white/10 pt-3">
-                    <p className="text-[0.62rem] font-black uppercase text-white/42">Tecnologias</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {techStack.map((tech) => (
-                        <span key={tech} className="rounded-full border border-white/10 bg-white/8 px-2.5 py-1 text-[0.62rem] font-black text-white/78">
-                          {tech}
-                        </span>
-                      ))}
+              <div className="room-screen-scroll" onScroll={handleScreenScroll}>
+                <main id="screen-inicio" className="room-screen-main">
+                  <div className="room-screen-copy">
+                    <p className="room-reveal room-kicker">Hola, soy</p>
+                    <h1 className="room-reveal font-display">Mario</h1>
+                    <p className="room-reveal room-role">Creative front-end, UX & VTEX IO</p>
+                    <p className="room-reveal room-intro">Creo experiencias digitales tranquilas, visuales y funcionales, con criterio de diseno y movimiento.</p>
+                    <div className="room-reveal room-screen-actions">
+                      <button type="button" onClick={() => handleScreenNav("proyectos")}>
+                        Explorar proyectos
+                        <Rocket size={15} />
+                      </button>
+                      <button type="button" onClick={() => handleScreenNav("sobre-mi")}>Sobre mi</button>
                     </div>
                   </div>
-                </aside>
 
-                <main className="room-screen-main relative overflow-hidden">
-                  <div className="absolute inset-0 opacity-55 [background-image:linear-gradient(rgba(255,255,255,.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.04)_1px,transparent_1px)] [background-size:34px_34px]" />
-                  <div className="relative z-10 grid h-full content-center gap-4 lg:grid-cols-[1fr_0.72fr] lg:items-center">
-                    <div>
-                      <p className="room-reveal text-xl font-bold text-white/82">Hola, soy</p>
-                      <h1 className="room-reveal mt-1 font-display text-6xl font-black leading-[0.82] text-[#ffb12d] md:text-7xl lg:text-8xl">
-                        Mario
-                      </h1>
-                      <p className="room-reveal mt-3 max-w-md text-sm font-black uppercase leading-tight tracking-normal text-white/82 md:text-base">
-                        Ingeniero de sistemas & developer front-end
-                      </p>
-                      <p className="room-reveal mt-3 max-w-md text-sm font-medium leading-relaxed text-white/62 md:text-[0.95rem]">
-                        Creo experiencias interactivas que conectan personas, diseno, codigo e IA.
-                      </p>
-                      <div className="room-reveal mt-4 flex flex-wrap gap-3">
-                        <a href="#proyectos" className="inline-flex items-center gap-2 rounded-full bg-[#ffb12d] px-4 py-2.5 text-sm font-black text-[#130b07] shadow-[0_18px_50px_rgba(255,177,45,.28)]">
-                          Explorar proyectos
-                          <Rocket size={17} />
-                        </a>
-                        <a href="#vtex" className="inline-flex items-center gap-2 rounded-full border border-white/14 px-4 py-2.5 text-sm font-black text-white/82 hover:bg-white/10">
-                          VTEX IO
-                        </a>
-                      </div>
+                  <figure className="room-reveal room-visual-card" aria-label="Visual creativo de escritorio digital">
+                    <SmartAssetImage src={roomAssets.base} preferPngVariant={false} alt="" />
+                    <div className="room-visual-overlay">
+                      <span>Diseno</span>
+                      <span>UX</span>
+                      <span>Motion</span>
                     </div>
+                  </figure>
 
-                    <div className="room-code-card room-reveal rounded-[1rem] border border-white/10 bg-white/[0.045] shadow-[0_20px_70px_rgba(0,0,0,.2)]">
-                      <div className="mb-4 flex gap-2">
-                        <span className="size-2 rounded-full bg-[#ff6f61]" />
-                        <span className="size-2 rounded-full bg-[#ffe06a]" />
-                        <span className="size-2 rounded-full bg-[#9ee8c6]" />
-                      </div>
-                      <pre className="whitespace-pre-wrap font-mono font-bold text-white/72">
-{`const sobreMi = () => {
-  return (
-    <div>
-      <h1>Resolver con diseno</h1>
-      <p>Front-end, IA y eCommerce
-      con intencion real.</p>
-    </div>
-  )
-}`}
-                      </pre>
-                    </div>
+                  <div className="room-reveal room-screen-stats">
+                    {screenStats.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <div key={item.label}>
+                          <Icon size={22} />
+                          <strong>{item.value}</strong>
+                          <span>{item.label}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </main>
+
+                <div className="room-screen-sections">
+                  {screenSections.map((section) => (
+                    <section key={section.id} id={`screen-${section.id}`} className="screen-info-panel">
+                      <p>{section.eyebrow}</p>
+                      <h2>{section.title}</h2>
+                      <span>{section.copy}</span>
+                    </section>
+                  ))}
+                  <section className="screen-info-panel screen-info-panel--tools">
+                    <p>Herramientas</p>
+                    <h2>Lo que uso para hacerlo real</h2>
+                    <div>
+                      {techStack.map((tech) => (
+                        <span key={tech}>{tech}</span>
+                      ))}
+                    </div>
+                  </section>
+                </div>
               </div>
             </div>
           </div>
@@ -256,6 +364,7 @@ export function RoomPortfolioHero() {
         </div>
         <DeskDevice3D />
         <MonitorToyCar3D />
+        <VtexTrophy3D />
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 export type Vector3Tuple = [number, number, number];
 
-export type Desk3DAssetId = "stand" | "phone" | "car";
+export type Desk3DAssetId = "stand" | "phone" | "car" | "trophy";
 
 export type Desk3DAssetTransform = {
   position: Vector3Tuple;
@@ -93,6 +93,18 @@ export const desk3dTransforms: Desk3DTransforms = {
       contactLeft: 16,
       contactBottom: 23,
     },
+    trophy: {
+      opacity: 0.28,
+      hoverOpacity: 0.2,
+      scaleX: 1.1,
+      scaleZ: 0.42,
+      contactOpacity: 0.72,
+      contactWidth: 32,
+      contactHeight: 7,
+      contactBlur: 8,
+      contactLeft: 42,
+      contactBottom: 20,
+    },
   },
   assets: {
     stand: {
@@ -112,6 +124,12 @@ export const desk3dTransforms: Desk3DTransforms = {
       rotation: [0.03, -0.64, -0.04],
       scale: 1.21,
       color: "#ffffff",
+    },
+    trophy: {
+      position: [0.45, -0.66, 0.04],
+      rotation: [-0.03, -0.28, -0.03],
+      scale: 0.98,
+      color: "#ff1b83",
     },
   },
 };
