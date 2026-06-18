@@ -134,9 +134,9 @@
   border: 0;
   background: transparent;
   padding: 0;
-  cursor: pointer;
   filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.34));
   outline: none;
+  pointer-events: none;
   transform-style: preserve-3d;
 }
 
@@ -145,96 +145,17 @@
   filter: saturate(1.03) contrast(1.03);
 }
 
-.room-object::after {
-  position: absolute;
-  inset: 10%;
-  border-radius: 999px;
-  background: rgba(255, 177, 45, 0.22);
-  content: "";
-  opacity: 0;
-  transform: scale(0.72);
-  transition: opacity 220ms ease, transform 220ms ease;
-  filter: blur(20px);
-}
-
-.room-object:hover::after,
-.room-object:focus-visible::after {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.room-object:hover {
-  z-index: 16;
-}
-
 .room-object img {
   position: relative;
   z-index: 1;
   pointer-events: none;
-  transition: transform 260ms ease;
-}
-
-.room-object:hover img,
-.room-object:focus-visible img {
-  transform: translateY(-8px) scale(1.035);
 }
 
 .room-object-lamp {
-  left: -1.4%;
-  top: -3.2%;
+  left: -0.4%;
+  top: 3.8%;
   width: min(15.5vw, 270px);
   transform: rotate(-8deg);
-}
-
-.room-object-mug {
-  left: 2.7%;
-  bottom: 7.2%;
-  width: min(10.2vw, 158px);
-  transform: rotate(-1deg) translateZ(170px);
-}
-
-.room-object-figure {
-  left: 10.7%;
-  bottom: 15.2%;
-  width: min(7.2vw, 112px);
-  transform: rotate(1deg) translateZ(210px);
-}
-
-.room-object-book {
-  left: 11.5%;
-  bottom: -7.5%;
-  width: min(34vw, 620px);
-  transform: rotate(1deg) translateZ(150px);
-}
-
-.room-object-photo {
-  right: 6.4%;
-  top: 29.5%;
-  width: min(9.8vw, 158px);
-  transform: rotate(8deg) translateZ(170px);
-}
-
-.room-object-neon {
-  right: 3.8%;
-  bottom: 6.4%;
-  width: min(8.4vw, 138px);
-  transform: rotate(1deg) translateZ(210px);
-}
-
-.room-active-note {
-  left: auto;
-  right: 5.8%;
-  top: 7.4%;
-  bottom: auto;
-  z-index: 20;
-  width: min(168px, 15vw);
-  border: 0;
-  border-radius: 0.35rem;
-  background: #d94b52;
-  color: #1a0f0c;
-  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.32);
-  transform: rotate(3deg);
-  backdrop-filter: none;
 }
 
 @media (max-height: 820px) and (min-width: 1024px) {
@@ -244,28 +165,12 @@
     width: min(54vw, 1050px);
   }
 
-  .room-object-book {
-    bottom: -8%;
-    width: min(32vw, 560px);
-  }
 }
 
 @media (max-width: 1100px) {
   .room-monitor {
     top: 33%;
     width: min(66vw, 760px);
-  }
-
-  .room-screen-ui {
-    inset: 0;
-    width: auto;
-    height: auto;
-  }
-
-  .room-object-lamp,
-  .room-object-photo,
-  .room-object-neon {
-    opacity: 0.72;
   }
 }
 
@@ -325,26 +230,7 @@
     gap: 0.8rem;
   }
 
-  .room-object-lamp,
-  .room-object-photo,
-  .room-object-neon,
-  .room-object-figure {
-    display: none;
-  }
-
-  .room-object-mug {
-    left: -2%;
-    bottom: 18%;
-    width: 28vw;
-  }
-
-  .room-object-book {
-    left: 5%;
-    bottom: 6%;
-    width: 58vw;
-  }
-
-  .room-active-note {
+  .room-object-lamp {
     display: none;
   }
 }

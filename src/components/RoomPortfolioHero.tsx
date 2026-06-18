@@ -6,11 +6,6 @@ import { gsap, useGSAP } from "../lib/gsap";
 const roomAssets = {
   base: "/assets/Habitacion/Fondobase.jpeg",
   lamp: "/assets/Habitacion/desk-lamp.png",
-  book: "/assets/Habitacion/design-sketchbook.png",
-  mug: "/assets/Habitacion/code-coffee-mug.png",
-  neon: "/assets/Habitacion/neon-code-sign.png",
-  figure: "/assets/Habitacion/pixel-mario-figure.png",
-  photo: "/assets/Habitacion/pinned-landscape-photo.png",
 };
 
 const navItems = [
@@ -21,15 +16,6 @@ const navItems = [
   { label: "Experiencia", icon: BriefcaseBusiness, to: "#experiencia" },
   { label: "VTEX", icon: Wrench, to: "#vtex" },
   { label: "Contacto", icon: Mail, to: "mailto:hola@mariorojas.dev" },
-];
-
-const roomObjects = [
-  { id: "lamp", label: "Enfoque", image: roomAssets.lamp, className: "room-object-lamp", hint: "Claridad visual" },
-  { id: "mug", label: "Codigo + cafe", image: roomAssets.mug, className: "room-object-mug", hint: "Constancia real" },
-  { id: "figure", label: "Mario pixel", image: roomAssets.figure, className: "room-object-figure", hint: "Identidad creativa" },
-  { id: "book", label: "UX book", image: roomAssets.book, className: "room-object-book", hint: "Ideas antes del show" },
-  { id: "photo", label: "Visual", image: roomAssets.photo, className: "room-object-photo", hint: "Diseno grafico" },
-  { id: "neon", label: "Code", image: roomAssets.neon, className: "room-object-neon", hint: "Dev frontend" },
 ];
 
 const techStack = ["React", "TypeScript", "GSAP", "VTEX IO", "UX/UI", "IA"];
@@ -63,7 +49,6 @@ function SmartAssetImage({ src, preferPngVariant = true, onError, ...props }: Sm
 
 export function RoomPortfolioHero() {
   const scope = useRef<HTMLElement>(null);
-  const [activeObject, setActiveObject] = useState(roomObjects[0]);
 
   useGSAP(
     () => {
@@ -263,21 +248,8 @@ export function RoomPortfolioHero() {
           </div>
         </div>
 
-        {roomObjects.map((item) => (
-          <button
-            key={item.id}
-            className={`room-layer ${item.id === "lamp" ? "room-base-locked" : "room-parallax"} room-object ${item.className}`}
-            type="button"
-            onClick={() => setActiveObject(item)}
-            aria-label={`Abrir ${item.label}`}
-          >
-            <SmartAssetImage className="room-cutout h-full w-full object-contain" src={item.image} alt="" />
-          </button>
-        ))}
-
-        <div className="room-base-locked room-active-note absolute rounded-[1rem] border border-white/12 bg-black/45 p-4 shadow-[0_24px_80px_rgba(0,0,0,.35)] backdrop-blur-md">
-          <p className="text-xs font-black uppercase text-[#ffb12d]">{activeObject.label}</p>
-          <p className="mt-1 text-sm font-semibold text-white/82">{activeObject.hint}</p>
+        <div className="room-layer room-base-locked room-object room-object-lamp" aria-hidden="true">
+          <SmartAssetImage className="room-cutout h-full w-full object-contain" src={roomAssets.lamp} alt="" />
         </div>
       </div>
     </section>
