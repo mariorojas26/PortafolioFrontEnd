@@ -3,9 +3,10 @@ import type { ImgHTMLAttributes, SyntheticEvent } from "react";
 import { useRef, useState } from "react";
 import { gsap, useGSAP } from "../lib/gsap";
 import { DeskDevice3D } from "./DeskDevice3D";
+import { MonitorToyCar3D } from "./MonitorToyCar3D";
 
 const roomAssets = {
-  base: "/assets/Habitacion/Fondobase.jpeg",
+  base: "/assets/Habitacion/Fondobase2.png",
   lamp: "/assets/Habitacion/desk-lamp.png",
 };
 
@@ -152,6 +153,7 @@ export function RoomPortfolioHero() {
   return (
     <section ref={scope} className="room-hero relative isolate min-h-[100svh] overflow-hidden bg-[#120b08] text-white">
       <div className="room-camera absolute inset-0 [transform-style:preserve-3d]">
+        <div className="room-mouse-rgb room-base-locked" aria-hidden="true" />
         <SmartAssetImage className="room-base absolute inset-0 h-full w-full object-cover object-center" src={roomAssets.base} preferPngVariant={false} alt="Habitacion calida con escritorio de Mario Rojas" />
         <div className="room-vignette absolute inset-0" />
 
@@ -253,6 +255,7 @@ export function RoomPortfolioHero() {
           <SmartAssetImage className="room-cutout h-full w-full object-contain" src={roomAssets.lamp} alt="" />
         </div>
         <DeskDevice3D />
+        <MonitorToyCar3D />
       </div>
     </section>
   );

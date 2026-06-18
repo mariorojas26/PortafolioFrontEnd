@@ -1,6 +1,6 @@
 export type Vector3Tuple = [number, number, number];
 
-export type Desk3DAssetId = "stand" | "phone";
+export type Desk3DAssetId = "stand" | "phone" | "car";
 
 export type Desk3DAssetTransform = {
   position: Vector3Tuple;
@@ -50,24 +50,24 @@ export const desk3dTransforms: Desk3DTransforms = {
   },
   tableY: -0.66,
   lighting: {
-    exposure: 1.17,
-    ambient: 0.98,
-    key: 3.02,
-    fill: 1.82,
-    rim: 0,
+    exposure: 0.5,
+    ambient: 0.23,
+    key: 3.05,
+    fill: 4,
+    rim: 0.69,
   },
   shadows: {
     stand: {
-      opacity: 0.2,
-      hoverOpacity: 0.2,
-      scaleX: 2.55,
-      scaleZ: 0.82,
-      contactOpacity: 0.48,
-      contactWidth: 58,
-      contactHeight: 12,
-      contactBlur: 9,
-      contactLeft: 4,
-      contactBottom: 6,
+      opacity: 0,
+      hoverOpacity: 0,
+      scaleX: 2.25,
+      scaleZ: 0.44,
+      contactOpacity: 0,
+      contactWidth: 82,
+      contactHeight: 15,
+      contactBlur: 7,
+      contactLeft: 0,
+      contactBottom: -16,
     },
     phone: {
       opacity: 0,
@@ -77,9 +77,21 @@ export const desk3dTransforms: Desk3DTransforms = {
       contactOpacity: 0,
       contactWidth: 42,
       contactHeight: 3,
-      contactBlur: 7,
-      contactLeft: 44,
-      contactBottom: 12,
+      contactBlur: 14,
+      contactLeft: -25,
+      contactBottom: 18,
+    },
+    car: {
+      opacity: 0.38,
+      hoverOpacity: 0.46,
+      scaleX: 1.52,
+      scaleZ: 0.48,
+      contactOpacity: 0.64,
+      contactWidth: 70,
+      contactHeight: 14,
+      contactBlur: 6,
+      contactLeft: 16,
+      contactBottom: 23,
     },
   },
   assets: {
@@ -87,12 +99,18 @@ export const desk3dTransforms: Desk3DTransforms = {
       position: [-0.56, 0.1, 0.03],
       rotation: [-0.08, -0.58, -0.03],
       scale: 0.2,
-      color: "#ffffff",
+      color: "#ffcfa8",
     },
     phone: {
       position: [-0.29, 0.66, 0.29],
       rotation: [-0.83, -2.22, -0.61],
       scale: 0.27,
+      color: "#ffffff",
+    },
+    car: {
+      position: [0.49, -0.67, -0.64],
+      rotation: [0.03, -0.64, -0.04],
+      scale: 1.21,
       color: "#ffffff",
     },
   },

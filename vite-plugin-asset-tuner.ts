@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path";
 
 type Vector3Tuple = [number, number, number];
 
-type Desk3DAssetId = "stand" | "phone";
+type Desk3DAssetId = "stand" | "phone" | "car";
 
 type Desk3DAssetTransform = {
   position: Vector3Tuple;
@@ -92,9 +92,11 @@ function isTransforms(value: unknown): value is Desk3DTransforms {
     !!transforms.shadows &&
     isShadowTransform(transforms.shadows.stand) &&
     isShadowTransform(transforms.shadows.phone) &&
+    isShadowTransform(transforms.shadows.car) &&
     !!transforms.assets &&
     isAssetTransform(transforms.assets.stand) &&
-    isAssetTransform(transforms.assets.phone)
+    isAssetTransform(transforms.assets.phone) &&
+    isAssetTransform(transforms.assets.car)
   );
 }
 
@@ -105,7 +107,7 @@ function formatTuple(tuple: Vector3Tuple) {
 function formatTransformFile(transforms: Desk3DTransforms) {
   return `export type Vector3Tuple = [number, number, number];
 
-export type Desk3DAssetId = "stand" | "phone";
+export type Desk3DAssetId = "stand" | "phone" | "car";
 
 export type Desk3DAssetTransform = {
   position: Vector3Tuple;
@@ -186,6 +188,18 @@ export const desk3dTransforms: Desk3DTransforms = {
       contactLeft: ${Number(transforms.shadows.phone.contactLeft.toFixed(4))},
       contactBottom: ${Number(transforms.shadows.phone.contactBottom.toFixed(4))},
     },
+    car: {
+      opacity: ${Number(transforms.shadows.car.opacity.toFixed(4))},
+      hoverOpacity: ${Number(transforms.shadows.car.hoverOpacity.toFixed(4))},
+      scaleX: ${Number(transforms.shadows.car.scaleX.toFixed(4))},
+      scaleZ: ${Number(transforms.shadows.car.scaleZ.toFixed(4))},
+      contactOpacity: ${Number(transforms.shadows.car.contactOpacity.toFixed(4))},
+      contactWidth: ${Number(transforms.shadows.car.contactWidth.toFixed(4))},
+      contactHeight: ${Number(transforms.shadows.car.contactHeight.toFixed(4))},
+      contactBlur: ${Number(transforms.shadows.car.contactBlur.toFixed(4))},
+      contactLeft: ${Number(transforms.shadows.car.contactLeft.toFixed(4))},
+      contactBottom: ${Number(transforms.shadows.car.contactBottom.toFixed(4))},
+    },
   },
   assets: {
     stand: {
@@ -199,6 +213,12 @@ export const desk3dTransforms: Desk3DTransforms = {
       rotation: ${formatTuple(transforms.assets.phone.rotation)},
       scale: ${Number(transforms.assets.phone.scale.toFixed(4))},
       color: ${JSON.stringify(transforms.assets.phone.color)},
+    },
+    car: {
+      position: ${formatTuple(transforms.assets.car.position)},
+      rotation: ${formatTuple(transforms.assets.car.rotation)},
+      scale: ${Number(transforms.assets.car.scale.toFixed(4))},
+      color: ${JSON.stringify(transforms.assets.car.color)},
     },
   },
 };

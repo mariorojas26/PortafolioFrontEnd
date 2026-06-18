@@ -3,9 +3,63 @@
 > vite --host 127.0.0.1 "--host" "127.0.0.1" "--port" "5178"
 
 
-  [32m[1mVITE[22m v5.2.12[39m  [2mready in [0m[1m1609[22m[2m[0m ms[22m
+  [32m[1mVITE[22m v5.2.12[39m  [2mready in [0m[1m936[22m[2m[0m ms[22m
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5178[22m/[39m
-[2m12:27:29 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
-[2m12:27:29 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
-[2m12:28:30 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
+[2m2:16:30 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m2:19:42 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m2:32:27 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m2:32:58 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m2:33:57 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m2:43:04 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
+[2m2:43:38 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
+[2m2:44:13 p. m.[22m [36m[1m[vite][22m[39m [32mvite-plugin-asset-tuner.ts changed, restarting server...[39m
+[2m2:44:13 p. m.[22m [36m[1m[vite][22m[39m [32mvite-plugin-asset-tuner.ts changed, restarting server...[39m
+[2m2:44:14 p. m.[22m [36m[1m[vite][22m[39m server restarted.
+[2m2:47:45 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/components/DeskDevice3D.tsx, /src/components/MonitorToyCar3D.tsx[22m
+[2m2:49:14 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/components/DeskDevice3D.tsx, /src/components/MonitorToyCar3D.tsx[22m
+[2m2:52:10 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
+[2m2:53:59 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
+[2m2:54:27 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[2m2:58:28 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
+[2m2:59:28 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
+[2m3:00:23 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
+[2m3:01:27 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/components/DeskDevice3D.tsx, /src/components/MonitorToyCar3D.tsx[22m
+[2m3:02:19 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m3:02:55 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[2m3:11:56 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m3:11:56 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m3:12:25 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/components/DeskDevice3D.tsx, /src/components/MonitorToyCar3D.tsx[22m
+[2m3:12:52 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/components/DeskDevice3D.tsx, /src/components/MonitorToyCar3D.tsx[22m
+[2m3:13:24 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[2m3:18:13 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/components/DeskDevice3D.tsx, /src/components/MonitorToyCar3D.tsx[22m
+[2m3:21:09 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/components/DeskDevice3D.tsx, /src/components/MonitorToyCar3D.tsx[22m
+[2m3:21:40 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[2m3:22:12 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m3:29:07 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m3:30:06 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
+[2m3:31:26 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/components/DeskDevice3D.tsx, /src/components/MonitorToyCar3D.tsx[22m
+[2m3:33:42 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m3:34:35 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
+[2m3:40:25 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/components/DeskDevice3D.tsx, /src/components/MonitorToyCar3D.tsx[22m
+[2m3:44:54 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m3:48:10 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m3:48:42 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m3:49:08 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[2m3:53:22 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m3:53:58 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m3:56:33 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[2m3:57:21 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m3:58:56 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m4:21:52 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
+[2m4:22:33 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m4:23:09 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[2m4:30:34 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
+[2m4:31:00 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/MonitorToyCar3D.tsx, /src/styles.css[22m
+[2m4:31:25 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DeskDevice3D.tsx, /src/styles.css[22m
+[2m4:33:45 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[2m4:39:09 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/RoomPortfolioHero.tsx, /src/styles.css[22m
+[2m4:39:45 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[2m4:40:17 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[2m4:43:17 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[2m4:44:24 p. m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m

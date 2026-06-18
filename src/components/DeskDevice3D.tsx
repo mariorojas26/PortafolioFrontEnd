@@ -5,7 +5,24 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { desk3dTransforms, type Desk3DAssetId, type Desk3DAssetTransform, type Desk3DShadowTransform, type Desk3DTransforms } from "../data/desk3dTransforms";
 
-const ASSET_URLS: Record<Desk3DAssetId, string> = {
+const DESK_TRANSFORMS_CHANGE_EVENT = "desk3d-transforms-change";
+
+declare global {
+  interface Window {
+    __desk3dDebug?: {
+      getRealShadow: () => {
+        opacity: number;
+        radius: number;
+        bias: number;
+        normalBias: number;
+      };
+    };
+  }
+}
+
+type DeviceAssetId = Exclude<Desk3DAssetId, "car">;
+
+const ASSET_URLS: Record<DeviceAssetId, string> = {
   stand: "/assets/3d/mobile__cell_phone_stand.glb",
   phone: "/assets/3d/iphone_16.glb",
 };
@@ -13,9 +30,11 @@ const ASSET_URLS: Record<Desk3DAssetId, string> = {
 const ASSET_LABELS: Record<Desk3DAssetId, string> = {
   stand: "Base",
   phone: "Telefono",
+  car: "Carro Supra",
 };
 
-const ASSET_IDS: Desk3DAssetId[] = ["stand", "phone"];
+const DEVICE_ASSET_IDS: DeviceAssetId[] = ["stand", "phone"];
+const TUNER_ASSET_IDS: Desk3DAssetId[] = ["stand", "phone", "car"];
 const TUNER_MODES = ["assets", "lighting", "shadow"] as const;
 
 type TunerMode = (typeof TUNER_MODES)[number];
@@ -32,7 +51,7 @@ type SceneControls = {
   keyLight: THREE.DirectionalLight;
   deskFill: THREE.PointLight;
   rimLight: THREE.PointLight;
-  tableShadows: Partial<Record<Desk3DAssetId, THREE.Mesh<THREE.CircleGeometry, THREE.ShadowMaterial>>>;
+  deskShadowReceiver: THREE.Mesh<THREE.PlaneGeometry, THREE.ShadowMaterial>;
 };
 
 function getRenderPixelRatio() {
@@ -57,6 +76,7 @@ function cloneTransforms(source: Desk3DTransforms): Desk3DTransforms {
     shadows: {
       stand: { ...source.shadows.stand },
       phone: { ...source.shadows.phone },
+      car: { ...source.shadows.car },
     },
     assets: {
       stand: {
@@ -70,6 +90,12 @@ function cloneTransforms(source: Desk3DTransforms): Desk3DTransforms {
         rotation: [...source.assets.phone.rotation],
         scale: source.assets.phone.scale,
         color: source.assets.phone.color,
+      },
+      car: {
+        position: [...source.assets.car.position],
+        rotation: [...source.assets.car.rotation],
+        scale: source.assets.car.scale,
+        color: source.assets.car.color,
       },
     },
   };
@@ -93,19 +119,6 @@ function applyTransform(asset: LoadedAsset | undefined, transform: Desk3DAssetTr
   });
 }
 
-function applyShadowTransform(
-  shadow: THREE.Mesh<THREE.CircleGeometry, THREE.ShadowMaterial> | undefined,
-  transform: Desk3DAssetTransform,
-  shadowTransform: Desk3DShadowTransform,
-  tableY: number,
-) {
-  if (!shadow) return;
-
-  shadow.position.set(transform.position[0], tableY - 0.01, transform.position[2]);
-  shadow.material.opacity = shadowTransform.opacity;
-  shadow.scale.set(shadowTransform.scaleX, 1, shadowTransform.scaleZ);
-}
-
 function applySceneControls(controls: SceneControls | null, transforms: Desk3DTransforms) {
   if (!controls) return;
 
@@ -114,28 +127,24 @@ function applySceneControls(controls: SceneControls | null, transforms: Desk3DTr
   controls.keyLight.intensity = transforms.lighting.key;
   controls.deskFill.intensity = transforms.lighting.fill;
   controls.rimLight.intensity = transforms.lighting.rim;
-  ASSET_IDS.forEach((assetId) => {
-    applyShadowTransform(controls.tableShadows[assetId], transforms.assets[assetId], transforms.shadows[assetId], transforms.tableY);
-  });
+  controls.keyLight.shadow.radius = transforms.shadows.phone.contactBlur;
+  controls.keyLight.shadow.bias = transforms.shadows.phone.contactLeft / 100000;
+  controls.keyLight.shadow.normalBias = transforms.shadows.phone.contactBottom / 1000;
+  controls.deskShadowReceiver.material.opacity = transforms.shadows.phone.opacity;
+  controls.deskShadowReceiver.position.y = transforms.tableY - 0.018;
+  controls.deskShadowReceiver.material.needsUpdate = true;
 }
 
-function prepareModel(assetId: Desk3DAssetId, model: THREE.Object3D, renderer: THREE.WebGLRenderer) {
+function prepareModel(assetId: DeviceAssetId, model: THREE.Object3D, renderer: THREE.WebGLRenderer) {
   model.traverse((child) => {
     if (!(child instanceof THREE.Mesh)) return;
-    child.castShadow = assetId !== "phone";
-    child.receiveShadow = assetId !== "stand";
+    child.castShadow = assetId === "phone";
+    child.receiveShadow = false;
 
     const materials = Array.isArray(child.material) ? child.material : [child.material];
-    materials.forEach((material) => {
+    const nextMaterials = materials.map((material) => {
       const texturedMaterial = material as THREE.MeshStandardMaterial;
       texturedMaterial.needsUpdate = true;
-
-      if (assetId === "stand") {
-        texturedMaterial.emissive = new THREE.Color(0x090402);
-        texturedMaterial.emissiveIntensity = 0.025;
-        texturedMaterial.roughness = Math.min(texturedMaterial.roughness ?? 0.72, 0.84);
-        texturedMaterial.metalness = Math.min(texturedMaterial.metalness ?? 0.35, 0.4);
-      }
 
       [
         texturedMaterial.map,
@@ -151,7 +160,27 @@ function prepareModel(assetId: Desk3DAssetId, model: THREE.Object3D, renderer: T
         texture.magFilter = THREE.LinearFilter;
         texture.needsUpdate = true;
       });
+
+      if (assetId === "stand") {
+        return new THREE.MeshStandardMaterial({
+          color: texturedMaterial.color ?? new THREE.Color(0xe9c982),
+          map: null,
+          transparent: false,
+          opacity: 1,
+          alphaTest: 0,
+          depthWrite: true,
+          roughness: 0.82,
+          metalness: 0.08,
+          emissive: new THREE.Color(0x2a1607),
+          emissiveIntensity: 0.04,
+          side: texturedMaterial.side,
+        });
+      }
+
+      return material;
     });
+
+    child.material = Array.isArray(child.material) ? nextMaterials : nextMaterials[0];
   });
 }
 
@@ -306,49 +335,52 @@ function AssetTuner({
             ))}
           </div>
 
-          {mode === "assets" ? (
-            <>
           <div className="asset-tuner__tabs">
-            {ASSET_IDS.map((assetId) => (
+            {TUNER_ASSET_IDS.map((assetId) => (
               <button key={assetId} type="button" className={assetId === selectedAsset ? "is-active" : ""} onClick={() => onSelectAsset(assetId)}>
                 {ASSET_LABELS[assetId]}
               </button>
             ))}
           </div>
 
-          <div className="asset-tuner__grid">
-            {(["X", "Y", "Z"] as const).map((axis, index) => (
-              <label key={`position-${axis}`}>
-                Pos {axis}
-                <input type="number" step={0.01} value={activeTransform.position[index]} onChange={(event) => updateTuple("position", index, Number(event.target.value))} />
-                <input type="range" min={-2.5} max={2.5} step={0.01} value={activeTransform.position[index]} onChange={(event) => updateTuple("position", index, Number(event.target.value))} />
-              </label>
-            ))}
+          {mode === "assets" ? (
+            <div className="asset-tuner__grid">
+              {(["X", "Y", "Z"] as const).map((axis, index) => (
+                <label key={`position-${axis}`}>
+                  Pos {axis}
+                  <input type="number" step={0.01} value={activeTransform.position[index]} onChange={(event) => updateTuple("position", index, Number(event.target.value))} />
+                  <input type="range" min={-2.5} max={2.5} step={0.01} value={activeTransform.position[index]} onChange={(event) => updateTuple("position", index, Number(event.target.value))} />
+                </label>
+              ))}
 
-            {(["X", "Y", "Z"] as const).map((axis, index) => (
-              <label key={`rotation-${axis}`}>
-                Rot {axis}
-                <input type="number" step={0.01} value={activeTransform.rotation[index]} onChange={(event) => updateTuple("rotation", index, Number(event.target.value))} />
-                <input type="range" min={-3.14} max={3.14} step={0.01} value={activeTransform.rotation[index]} onChange={(event) => updateTuple("rotation", index, Number(event.target.value))} />
-              </label>
-            ))}
+              {(["X", "Y", "Z"] as const).map((axis, index) => (
+                <label key={`rotation-${axis}`}>
+                  Rot {axis}
+                  <input type="number" step={0.01} value={activeTransform.rotation[index]} onChange={(event) => updateTuple("rotation", index, Number(event.target.value))} />
+                  <input type="range" min={-3.14} max={3.14} step={0.01} value={activeTransform.rotation[index]} onChange={(event) => updateTuple("rotation", index, Number(event.target.value))} />
+                </label>
+              ))}
 
-            <label>
-              Escala
-              <input type="number" step={0.01} value={activeTransform.scale} onChange={(event) => updateScale(Number(event.target.value))} />
-              <input type="range" min={0.05} max={4} step={0.01} value={activeTransform.scale} onChange={(event) => updateScale(Number(event.target.value))} />
-            </label>
-            <label className="asset-tuner__color-row">
-              Color
-              <input type="color" value={activeTransform.color} onChange={(event) => updateColor(event.target.value)} />
-              <input type="text" value={activeTransform.color} onChange={(event) => updateColor(event.target.value)} />
-            </label>
-          </div>
-            </>
+              <label>
+                Escala
+                <input type="number" step={0.01} value={activeTransform.scale} onChange={(event) => updateScale(Number(event.target.value))} />
+                <input type="range" min={0.05} max={4} step={0.01} value={activeTransform.scale} onChange={(event) => updateScale(Number(event.target.value))} />
+              </label>
+              {selectedAsset !== "car" ? (
+                <label className="asset-tuner__color-row">
+                  Color
+                  <input type="color" value={activeTransform.color} onChange={(event) => updateColor(event.target.value)} />
+                  <input type="text" value={activeTransform.color} onChange={(event) => updateColor(event.target.value)} />
+                </label>
+              ) : (
+                <p className="asset-tuner__hint">Color bloqueado para conservar la livery del Supra.</p>
+              )}
+            </div>
           ) : null}
 
           {mode === "lighting" ? (
             <div className="asset-tuner__grid">
+              <p className="asset-tuner__hint">Luz general de la escena del celular y la base.</p>
               {[
                 ["Expos", "exposure", 0.5, 1.8, 0.01],
                 ["Amb", "ambient", 0, 3, 0.01],
@@ -367,23 +399,23 @@ function AssetTuner({
 
           {mode === "shadow" ? (
             <div className="asset-tuner__grid">
-              <p className="asset-tuner__hint">Editando sombra de {ASSET_LABELS[selectedAsset]}</p>
-              {[
+              <p className="asset-tuner__hint">Sombra individual de {ASSET_LABELS[selectedAsset]}.</p>
+              {([
                 ["3D Op", "opacity", 0, 0.9, 0.01],
                 ["Hover", "hoverOpacity", 0, 0.7, 0.01],
                 ["3D X", "scaleX", 0.2, 3, 0.01],
                 ["3D Z", "scaleZ", 0.1, 2, 0.01],
                 ["CSS Op", "contactOpacity", 0, 0.9, 0.01],
-                ["CSS W", "contactWidth", 10, 90, 1],
-                ["CSS H", "contactHeight", 2, 30, 1],
+                ["CSS W", "contactWidth", 10, 120, 1],
+                ["CSS H", "contactHeight", 2, 36, 1],
                 ["Blur", "contactBlur", 0, 32, 1],
-                ["Left", "contactLeft", -10, 80, 1],
-                ["Bottom", "contactBottom", -10, 50, 1],
-              ].map(([label, key, min, max, step]) => (
-                <label key={key as string}>
-                  {label as string}
-                  <input type="number" step={step as number} value={activeShadow[key as keyof Desk3DShadowTransform]} onChange={(event) => updateShadow(key as keyof Desk3DShadowTransform, Number(event.target.value))} />
-                  <input type="range" min={min as number} max={max as number} step={step as number} value={activeShadow[key as keyof Desk3DShadowTransform]} onChange={(event) => updateShadow(key as keyof Desk3DShadowTransform, Number(event.target.value))} />
+                ["Left", "contactLeft", -80, 90, 1],
+                ["Bottom", "contactBottom", -30, 70, 1],
+              ] as const).map(([label, key, min, max, step]) => (
+                <label key={key}>
+                  {label}
+                  <input type="number" step={step} value={activeShadow[key]} onChange={(event) => updateShadow(key, Number(event.target.value))} />
+                  <input type="range" min={min} max={max} step={step} value={activeShadow[key]} onChange={(event) => updateShadow(key, Number(event.target.value))} />
                 </label>
               ))}
             </div>
@@ -404,16 +436,20 @@ function AssetTuner({
 export function DeskDevice3D() {
   const hostRef = useRef<HTMLDivElement>(null);
   const [transforms, setTransforms] = useState(() => cloneTransforms(desk3dTransforms));
-  const [selectedAsset, setSelectedAsset] = useState<Desk3DAssetId>("phone");
+  const [selectedAsset, setSelectedAsset] = useState<Desk3DAssetId>("car");
+  const [phoneHintVisible, setPhoneHintVisible] = useState(false);
+  const [phoneIntroActive, setPhoneIntroActive] = useState(false);
   const transformsRef = useRef(transforms);
-  const loadedAssetsRef = useRef<Partial<Record<Desk3DAssetId, LoadedAsset>>>({});
+  const loadedAssetsRef = useRef<Partial<Record<DeviceAssetId, LoadedAsset>>>({});
   const sceneControlsRef = useRef<SceneControls | null>(null);
+  const phoneHintVisibleRef = useRef(false);
   const isDev = useMemo(() => import.meta.env.DEV, []);
 
   useEffect(() => {
     transformsRef.current = transforms;
     applySceneControls(sceneControlsRef.current, transforms);
-    ASSET_IDS.forEach((assetId) => applyTransform(loadedAssetsRef.current[assetId], transforms.assets[assetId]));
+    DEVICE_ASSET_IDS.forEach((assetId) => applyTransform(loadedAssetsRef.current[assetId], transforms.assets[assetId]));
+    window.dispatchEvent(new CustomEvent<Desk3DTransforms>(DESK_TRANSFORMS_CHANGE_EVENT, { detail: transforms }));
   }, [transforms]);
 
   useEffect(() => {
@@ -447,9 +483,20 @@ export function DeskDevice3D() {
     scene.add(ambientLight);
 
     const keyLight = new THREE.DirectionalLight(0xffb35c, transformsRef.current.lighting.key);
-    keyLight.position.set(-2.8, 4.2, 3.6);
+    keyLight.position.set(-3.8, 6.1, 3.35);
     keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    keyLight.shadow.radius = transformsRef.current.shadows.phone.contactBlur;
+    keyLight.shadow.camera.left = -3.2;
+    keyLight.shadow.camera.right = 3.2;
+    keyLight.shadow.camera.top = 3.2;
+    keyLight.shadow.camera.bottom = -3.2;
+    keyLight.shadow.camera.near = 0.5;
+    keyLight.shadow.camera.far = 10;
+    keyLight.shadow.bias = transformsRef.current.shadows.phone.contactLeft / 100000;
+    keyLight.shadow.normalBias = transformsRef.current.shadows.phone.contactBottom / 1000;
     scene.add(keyLight);
+    scene.add(keyLight.target);
 
     const deskFill = new THREE.PointLight(0xffb56b, transformsRef.current.lighting.fill, 7);
     deskFill.position.set(-2.7, 0.62, 2.35);
@@ -459,30 +506,49 @@ export function DeskDevice3D() {
     rimLight.position.set(2.8, 1.2, 2.8);
     scene.add(rimLight);
 
-    const tableShadows: SceneControls["tableShadows"] = {};
-    ASSET_IDS.forEach((assetId) => {
-      const shadowTransform = transformsRef.current.shadows[assetId];
-      const tableShadow = new THREE.Mesh(
-        new THREE.CircleGeometry(1.06, 64),
-        new THREE.ShadowMaterial({ color: 0x100703, opacity: shadowTransform.opacity }),
-      );
-      tableShadow.rotation.x = -Math.PI / 2;
-      tableShadow.receiveShadow = true;
-      applyShadowTransform(tableShadow, transformsRef.current.assets[assetId], shadowTransform, transformsRef.current.tableY);
-      scene.add(tableShadow);
-      tableShadows[assetId] = tableShadow;
-    });
+    const deskShadowReceiver = new THREE.Mesh(
+      new THREE.PlaneGeometry(8, 4.6),
+      new THREE.ShadowMaterial({
+        color: 0x1a0702,
+        opacity: transformsRef.current.shadows.phone.opacity,
+        transparent: true,
+      }),
+    );
+    deskShadowReceiver.rotation.x = -Math.PI / 2;
+    deskShadowReceiver.position.set(-0.18, transformsRef.current.tableY - 0.018, 0.48);
+    deskShadowReceiver.receiveShadow = true;
+    scene.add(deskShadowReceiver);
     scene.add(assetGroup);
-    sceneControlsRef.current = { renderer, ambientLight, keyLight, deskFill, rimLight, tableShadows };
+    sceneControlsRef.current = { renderer, ambientLight, keyLight, deskFill, rimLight, deskShadowReceiver };
+    if (import.meta.env.DEV) {
+      window.__desk3dDebug = {
+        getRealShadow: () => ({
+          opacity: deskShadowReceiver.material.opacity,
+          radius: keyLight.shadow.radius,
+          bias: keyLight.shadow.bias,
+          normalBias: keyLight.shadow.normalBias,
+        }),
+      };
+    }
 
     let frameId = 0;
     let alive = true;
     let targetTiltX = 0;
     let targetTiltY = 0;
     let targetHover = 0;
+    let targetProximity = 0;
     let hoverProgress = 0;
+    let proximityProgress = 0;
     let hoverPulse = 0;
+    let introPulse = 0;
     let isModelHovered = false;
+    let isPhoneNear = false;
+
+    const setPhoneHint = (visible: boolean) => {
+      if (phoneHintVisibleRef.current === visible) return;
+      phoneHintVisibleRef.current = visible;
+      setPhoneHintVisible(visible);
+    };
 
     const resize = () => {
       const rect = host.getBoundingClientRect();
@@ -495,7 +561,7 @@ export function DeskDevice3D() {
     };
 
     const loader = new GLTFLoader();
-    ASSET_IDS.forEach((assetId) => {
+    DEVICE_ASSET_IDS.forEach((assetId) => {
       loader.load(ASSET_URLS[assetId], (gltf) => {
         if (!alive) {
           disposeObject(gltf.scene);
@@ -533,32 +599,52 @@ export function DeskDevice3D() {
       const rect = host.getBoundingClientRect();
       const nx = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
       const ny = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+      const localX = (event.clientX - rect.left) / rect.width;
+      const localY = (event.clientY - rect.top) / rect.height;
 
       pointer.set(nx, -ny);
       raycaster.setFromCamera(pointer, camera);
 
       const phone = loadedAssetsRef.current.phone;
       const intersections = phone ? raycaster.intersectObject(phone.model, true) : [];
-      return { hit: intersections.length > 0, nx, ny };
+      const visualNearArea = localX > 0.28 && localX < 0.6 && localY > 0.16 && localY < 0.8;
+      let near = intersections.length > 0 || visualNearArea;
+
+      if (phone && !near) {
+        const center = new THREE.Vector3();
+        phone.root.getWorldPosition(center);
+        center.project(camera);
+        const phoneX = (center.x * 0.5 + 0.5) * rect.width;
+        const phoneY = (-center.y * 0.5 + 0.5) * rect.height;
+        const distance = Math.hypot(event.clientX - rect.left - phoneX, event.clientY - rect.top - phoneY);
+        const nearRadius = THREE.MathUtils.clamp(rect.width * 0.16, 90, 155);
+        near = distance < nearRadius;
+      }
+
+      return { hit: intersections.length > 0, near, nx, ny };
     };
 
     const onPointerMove = (event: PointerEvent) => {
-      const { hit, nx, ny } = getHoveredPhone(event);
+      const { hit, near, nx, ny } = getHoveredPhone(event);
 
       if (hit && !isModelHovered) {
         hoverPulse = 1;
       }
 
       isModelHovered = hit;
+      isPhoneNear = near;
       targetHover = hit ? 1 : 0;
+      targetProximity = near ? 1 : 0;
       targetTiltY = hit ? THREE.MathUtils.clamp(nx, -1, 1) * 0.08 : 0;
       targetTiltX = hit ? THREE.MathUtils.clamp(ny, -1, 1) * -0.04 : 0;
-      host.style.cursor = hit ? "pointer" : "default";
+      host.style.cursor = hit || near ? "pointer" : "default";
     };
 
     const onPointerLeave = () => {
       isModelHovered = false;
+      isPhoneNear = false;
       targetHover = 0;
+      targetProximity = 0;
       targetTiltX = 0;
       targetTiltY = 0;
       host.style.cursor = "default";
@@ -573,25 +659,24 @@ export function DeskDevice3D() {
         if (!reduceMotion) {
           const hoverEase = targetHover > hoverProgress ? 0.24 : 0.13;
           hoverProgress = THREE.MathUtils.lerp(hoverProgress, targetHover, hoverEase);
+          proximityProgress = THREE.MathUtils.lerp(proximityProgress, targetProximity, targetProximity > proximityProgress ? 0.2 : 0.12);
           hoverPulse = THREE.MathUtils.lerp(hoverPulse, 0, 0.08);
+          introPulse = Math.max(0, introPulse - 0.018);
+          const introBounce = Math.sin((1 - introPulse) * Math.PI * 2) * introPulse * 0.07;
+          const proximityLift = proximityProgress * 0.045;
 
-          phone.root.position.y = THREE.MathUtils.lerp(phone.root.position.y, currentTransform.position[1] + hoverProgress * 0.18, 0.2);
+          phone.root.position.y = THREE.MathUtils.lerp(phone.root.position.y, currentTransform.position[1] + hoverProgress * 0.18 + proximityLift + introBounce, 0.2);
           phone.root.rotation.y = THREE.MathUtils.lerp(
             phone.root.rotation.y,
-            currentTransform.rotation[1] + targetTiltY + hoverProgress * 0.17 + hoverPulse * 0.3,
+            currentTransform.rotation[1] + targetTiltY + hoverProgress * 0.17 + proximityProgress * 0.045 + hoverPulse * 0.3 + introBounce * 0.7,
             0.18,
           );
-          phone.root.rotation.x = THREE.MathUtils.lerp(phone.root.rotation.x, currentTransform.rotation[0] + targetTiltX - hoverProgress * 0.065, 0.16);
+          phone.root.rotation.x = THREE.MathUtils.lerp(phone.root.rotation.x, currentTransform.rotation[0] + targetTiltX - hoverProgress * 0.065 - proximityProgress * 0.018, 0.16);
           phone.root.rotation.z = THREE.MathUtils.lerp(phone.root.rotation.z, currentTransform.rotation[2] - hoverProgress * 0.04, 0.16);
 
-          const phoneShadow = tableShadows.phone;
-          if (phoneShadow) {
-            const liveShadow = transformsRef.current.shadows.phone;
-            const shadowOpacity = THREE.MathUtils.lerp(liveShadow.opacity, liveShadow.hoverOpacity, hoverProgress);
-            const shadowSpread = THREE.MathUtils.lerp(1, 1.12, hoverProgress);
-            phoneShadow.material.opacity = shadowOpacity;
-            phoneShadow.scale.set(liveShadow.scaleX * shadowSpread, 1, liveShadow.scaleZ * shadowSpread);
-          }
+          setPhoneHint(isPhoneNear || proximityProgress > 0.12 || hoverProgress > 0.08 || introPulse > 0.06);
+        } else {
+          setPhoneHint(isPhoneNear);
         }
       }
 
@@ -606,10 +691,22 @@ export function DeskDevice3D() {
     resizeObserver.observe(host);
     host.addEventListener("pointermove", onPointerMove);
     host.addEventListener("pointerleave", onPointerLeave);
+    let introReleaseTimer = 0;
+    const introTimer = window.setTimeout(() => {
+      introPulse = reduceMotion ? 0 : 1;
+      setPhoneIntroActive(true);
+      setPhoneHint(true);
+      introReleaseTimer = window.setTimeout(() => {
+        setPhoneIntroActive(false);
+        if (!isPhoneNear) setPhoneHint(false);
+      }, 1450);
+    }, 1000);
 
     return () => {
       alive = false;
       window.cancelAnimationFrame(frameId);
+      window.clearTimeout(introTimer);
+      window.clearTimeout(introReleaseTimer);
       resizeObserver.disconnect();
       host.removeEventListener("pointermove", onPointerMove);
       host.removeEventListener("pointerleave", onPointerLeave);
@@ -617,6 +714,9 @@ export function DeskDevice3D() {
       renderer.dispose();
       renderer.domElement.remove();
       sceneControlsRef.current = null;
+      if (import.meta.env.DEV) {
+        delete window.__desk3dDebug;
+      }
     };
   }, []);
 
@@ -656,7 +756,7 @@ export function DeskDevice3D() {
   return (
     <div
       ref={hostRef}
-      className="room-device-stage room-layer room-base-locked"
+      className={`room-device-stage room-layer room-base-locked ${phoneHintVisible ? "is-phone-near" : ""} ${phoneIntroActive ? "is-intro-pulsing" : ""}`}
       style={{
         left: transforms.stage.left,
         bottom: transforms.stage.bottom,
@@ -664,11 +764,22 @@ export function DeskDevice3D() {
         height: transforms.stage.height,
       } as CSSProperties}
     >
-      {ASSET_IDS.map((assetId) => (
+      {DEVICE_ASSET_IDS.map((assetId) => (
         <div key={assetId} className={`device-contact-shadow device-contact-shadow--${assetId}`} style={getContactShadowStyle(transforms.shadows[assetId])} />
       ))}
+      <div className="device-phone-screen-wake" aria-hidden="true" />
+      <div className="object-action-label object-action-label--phone" aria-hidden="true">
+        Contacto
+      </div>
       {isDev ? (
-        <AssetTuner selectedAsset={selectedAsset} transforms={transforms} onSelectAsset={setSelectedAsset} onChangeTransform={updateTransform} onChangeLighting={updateLighting} onChangeShadow={updateShadow} />
+        <AssetTuner
+          selectedAsset={selectedAsset}
+          transforms={transforms}
+          onSelectAsset={setSelectedAsset}
+          onChangeTransform={updateTransform}
+          onChangeLighting={updateLighting}
+          onChangeShadow={updateShadow}
+        />
       ) : null}
     </div>
   );
