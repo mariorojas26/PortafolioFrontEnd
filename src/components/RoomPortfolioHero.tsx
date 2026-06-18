@@ -2,6 +2,7 @@ import { BriefcaseBusiness, Code2, Home, Mail, Rocket, UserRound, Wrench } from 
 import type { ImgHTMLAttributes, SyntheticEvent } from "react";
 import { useRef, useState } from "react";
 import { gsap, useGSAP } from "../lib/gsap";
+import { DeskDevice3D } from "./DeskDevice3D";
 
 const roomAssets = {
   base: "/assets/Habitacion/Fondobase.jpeg",
@@ -251,6 +252,7 @@ export function RoomPortfolioHero() {
         <div className="room-layer room-base-locked room-object room-object-lamp" aria-hidden="true">
           <SmartAssetImage className="room-cutout h-full w-full object-contain" src={roomAssets.lamp} alt="" />
         </div>
+        <DeskDevice3D />
       </div>
     </section>
   );
