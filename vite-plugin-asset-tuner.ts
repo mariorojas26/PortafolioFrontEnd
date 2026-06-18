@@ -10,6 +10,20 @@ type Desk3DAssetTransform = {
   position: Vector3Tuple;
   rotation: Vector3Tuple;
   scale: number;
+  color: string;
+};
+
+type Desk3DShadowTransform = {
+  opacity: number;
+  hoverOpacity: number;
+  scaleX: number;
+  scaleZ: number;
+  contactOpacity: number;
+  contactWidth: number;
+  contactHeight: number;
+  contactBlur: number;
+  contactLeft: number;
+  contactBottom: number;
 };
 
 type Desk3DTransforms = {
@@ -20,6 +34,14 @@ type Desk3DTransforms = {
     height: string;
   };
   tableY: number;
+  lighting: {
+    exposure: number;
+    ambient: number;
+    key: number;
+    fill: number;
+    rim: number;
+  };
+  shadows: Record<Desk3DAssetId, Desk3DShadowTransform>;
   assets: Record<Desk3DAssetId, Desk3DAssetTransform>;
 };
 
@@ -32,7 +54,28 @@ function isVector3Tuple(value: unknown): value is Vector3Tuple {
 function isAssetTransform(value: unknown): value is Desk3DAssetTransform {
   if (!value || typeof value !== "object") return false;
   const transform = value as Desk3DAssetTransform;
-  return isVector3Tuple(transform.position) && isVector3Tuple(transform.rotation) && typeof transform.scale === "number" && Number.isFinite(transform.scale);
+  return isVector3Tuple(transform.position) && isVector3Tuple(transform.rotation) && typeof transform.scale === "number" && Number.isFinite(transform.scale) && /^#[0-9a-fA-F]{6}$/.test(transform.color);
+}
+
+function hasFiniteNumbers(value: unknown, keys: string[]) {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return keys.every((key) => typeof record[key] === "number" && Number.isFinite(record[key]));
+}
+
+function isShadowTransform(value: unknown): value is Desk3DShadowTransform {
+  return hasFiniteNumbers(value, [
+    "opacity",
+    "hoverOpacity",
+    "scaleX",
+    "scaleZ",
+    "contactOpacity",
+    "contactWidth",
+    "contactHeight",
+    "contactBlur",
+    "contactLeft",
+    "contactBottom",
+  ]);
 }
 
 function isTransforms(value: unknown): value is Desk3DTransforms {
@@ -45,6 +88,10 @@ function isTransforms(value: unknown): value is Desk3DTransforms {
     typeof transforms.stage.width === "string" &&
     typeof transforms.stage.height === "string" &&
     typeof transforms.tableY === "number" &&
+    hasFiniteNumbers(transforms.lighting, ["exposure", "ambient", "key", "fill", "rim"]) &&
+    !!transforms.shadows &&
+    isShadowTransform(transforms.shadows.stand) &&
+    isShadowTransform(transforms.shadows.phone) &&
     !!transforms.assets &&
     isAssetTransform(transforms.assets.stand) &&
     isAssetTransform(transforms.assets.phone)
@@ -64,6 +111,20 @@ export type Desk3DAssetTransform = {
   position: Vector3Tuple;
   rotation: Vector3Tuple;
   scale: number;
+  color: string;
+};
+
+export type Desk3DShadowTransform = {
+  opacity: number;
+  hoverOpacity: number;
+  scaleX: number;
+  scaleZ: number;
+  contactOpacity: number;
+  contactWidth: number;
+  contactHeight: number;
+  contactBlur: number;
+  contactLeft: number;
+  contactBottom: number;
 };
 
 export type Desk3DTransforms = {
@@ -74,6 +135,14 @@ export type Desk3DTransforms = {
     height: string;
   };
   tableY: number;
+  lighting: {
+    exposure: number;
+    ambient: number;
+    key: number;
+    fill: number;
+    rim: number;
+  };
+  shadows: Record<Desk3DAssetId, Desk3DShadowTransform>;
   assets: Record<Desk3DAssetId, Desk3DAssetTransform>;
 };
 
@@ -85,16 +154,51 @@ export const desk3dTransforms: Desk3DTransforms = {
     height: ${JSON.stringify(transforms.stage.height)},
   },
   tableY: ${Number(transforms.tableY.toFixed(4))},
+  lighting: {
+    exposure: ${Number(transforms.lighting.exposure.toFixed(4))},
+    ambient: ${Number(transforms.lighting.ambient.toFixed(4))},
+    key: ${Number(transforms.lighting.key.toFixed(4))},
+    fill: ${Number(transforms.lighting.fill.toFixed(4))},
+    rim: ${Number(transforms.lighting.rim.toFixed(4))},
+  },
+  shadows: {
+    stand: {
+      opacity: ${Number(transforms.shadows.stand.opacity.toFixed(4))},
+      hoverOpacity: ${Number(transforms.shadows.stand.hoverOpacity.toFixed(4))},
+      scaleX: ${Number(transforms.shadows.stand.scaleX.toFixed(4))},
+      scaleZ: ${Number(transforms.shadows.stand.scaleZ.toFixed(4))},
+      contactOpacity: ${Number(transforms.shadows.stand.contactOpacity.toFixed(4))},
+      contactWidth: ${Number(transforms.shadows.stand.contactWidth.toFixed(4))},
+      contactHeight: ${Number(transforms.shadows.stand.contactHeight.toFixed(4))},
+      contactBlur: ${Number(transforms.shadows.stand.contactBlur.toFixed(4))},
+      contactLeft: ${Number(transforms.shadows.stand.contactLeft.toFixed(4))},
+      contactBottom: ${Number(transforms.shadows.stand.contactBottom.toFixed(4))},
+    },
+    phone: {
+      opacity: ${Number(transforms.shadows.phone.opacity.toFixed(4))},
+      hoverOpacity: ${Number(transforms.shadows.phone.hoverOpacity.toFixed(4))},
+      scaleX: ${Number(transforms.shadows.phone.scaleX.toFixed(4))},
+      scaleZ: ${Number(transforms.shadows.phone.scaleZ.toFixed(4))},
+      contactOpacity: ${Number(transforms.shadows.phone.contactOpacity.toFixed(4))},
+      contactWidth: ${Number(transforms.shadows.phone.contactWidth.toFixed(4))},
+      contactHeight: ${Number(transforms.shadows.phone.contactHeight.toFixed(4))},
+      contactBlur: ${Number(transforms.shadows.phone.contactBlur.toFixed(4))},
+      contactLeft: ${Number(transforms.shadows.phone.contactLeft.toFixed(4))},
+      contactBottom: ${Number(transforms.shadows.phone.contactBottom.toFixed(4))},
+    },
+  },
   assets: {
     stand: {
       position: ${formatTuple(transforms.assets.stand.position)},
       rotation: ${formatTuple(transforms.assets.stand.rotation)},
       scale: ${Number(transforms.assets.stand.scale.toFixed(4))},
+      color: ${JSON.stringify(transforms.assets.stand.color)},
     },
     phone: {
       position: ${formatTuple(transforms.assets.phone.position)},
       rotation: ${formatTuple(transforms.assets.phone.rotation)},
       scale: ${Number(transforms.assets.phone.scale.toFixed(4))},
+      color: ${JSON.stringify(transforms.assets.phone.color)},
     },
   },
 };
