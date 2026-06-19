@@ -194,6 +194,15 @@ export function VtexTrophy3D() {
     let hoverPulse = 0;
     let isHovered = false;
 
+    const isSceneSuspended = () => {
+      const roomRoot = host.closest(".room-hero");
+      return (
+        roomRoot?.classList.contains("is-screen-entering") ||
+        roomRoot?.classList.contains("is-scene-occluded") ||
+        roomRoot?.classList.contains("is-screen-focused")
+      );
+    };
+
     const setHint = (visible: boolean) => {
       if (hintVisibleRef.current === visible) return;
       hintVisibleRef.current = visible;
@@ -273,6 +282,8 @@ export function VtexTrophy3D() {
     };
 
     const onPointerMove = (event: PointerEvent) => {
+      if (isSceneSuspended()) return;
+
       const hit = getHover(event);
       if (hit && !isHovered) {
         hoverPulse = 1;
@@ -295,6 +306,8 @@ export function VtexTrophy3D() {
       if (!alive) return;
 
       frameId = 0;
+      if (isSceneSuspended()) return;
+
       let shouldContinue = false;
       const trophy = loadedTrophyRef.current;
       if (trophy && !reduceMotion && TROPHY_INTERACTION_ENABLED) {
@@ -346,8 +359,35 @@ export function VtexTrophy3D() {
     };
 
     function requestRender() {
-      if (!alive || frameId) return;
+      if (!alive || frameId || isSceneSuspended()) return;
       frameId = window.requestAnimationFrame(render);
+    };
+
+    const syncSceneSuspension = () => {
+      if (!isSceneSuspended()) {
+        requestRender();
+        return;
+      }
+
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+        frameId = 0;
+      }
+      isHovered = false;
+      targetHover = 0;
+      host.style.cursor = "default";
+      setHint(false);
+      hoverProgress = 0;
+      hoverPulse = 0;
+      applyTrophyTransform(loadedTrophyRef.current, transformRef.current, shadowRef.current);
+      if (loadedTrophyRef.current) {
+        loadedTrophyRef.current.glow.intensity = 0;
+        loadedTrophyRef.current.glowMaterials.forEach((material) => {
+          material.emissiveIntensity = 0.035;
+          material.needsUpdate = true;
+        });
+      }
+      renderer.render(scene, camera);
     };
 
     resize();
@@ -355,6 +395,11 @@ export function VtexTrophy3D() {
 
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(host);
+    const roomRoot = host.closest(".room-hero");
+    const roomClassObserver = roomRoot ? new MutationObserver(syncSceneSuspension) : null;
+    if (roomRoot && roomClassObserver) {
+      roomClassObserver.observe(roomRoot, { attributes: true, attributeFilter: ["class"] });
+    }
     if (TROPHY_INTERACTION_ENABLED) {
       host.addEventListener("pointermove", onPointerMove);
       host.addEventListener("pointerleave", onPointerLeave);
@@ -366,6 +411,7 @@ export function VtexTrophy3D() {
       window.cancelAnimationFrame(frameId);
       window.clearTimeout(loadTimer);
       resizeObserver.disconnect();
+      roomClassObserver?.disconnect();
       if (TROPHY_INTERACTION_ENABLED) {
         host.removeEventListener("pointermove", onPointerMove);
         host.removeEventListener("pointerleave", onPointerLeave);

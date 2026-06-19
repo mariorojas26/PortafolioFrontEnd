@@ -39,6 +39,8 @@
   overflow: hidden;
   transform-origin: center;
   will-change: transform;
+  backface-visibility: hidden;
+  contain: paint;
 }
 
 .room-pan-layer {
@@ -49,12 +51,12 @@
   transform-origin: center;
   transform: translate3d(0, 0, 0);
   will-change: transform;
+  backface-visibility: hidden;
 }
 
 .room-base {
   z-index: 2;
   object-position: center;
-  filter: saturate(1.07) contrast(1.04) brightness(0.94);
 }
 
 .room-mouse-rgb {
@@ -134,7 +136,8 @@
 .room-monitor-pan,
 .room-layer,
 .room-reveal,
-.room-base-locked {
+.room-base-locked,
+.room-vignette {
   will-change: transform, opacity;
 }
 
@@ -146,6 +149,14 @@
   aspect-ratio: 1240 / 674;
   transform: translate(-50%, -50%);
   transform-style: flat;
+  contain: paint;
+  isolation: isolate;
+}
+
+.room-hero.is-screen-occluding .room-monitor,
+.room-hero.is-scene-occluded .room-monitor,
+.room-hero.is-screen-focused .room-monitor {
+  z-index: 42;
 }
 
 .room-monitor-glow,
@@ -192,7 +203,6 @@
     rgba(12, 8, 20, 0.72);
   padding: clamp(0.55rem, 0.95vw, 0.82rem) clamp(0.85rem, 1.65vw, 1.4rem);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.13);
-  backdrop-filter: blur(18px);
 }
 
 .room-screen-brand,
@@ -335,6 +345,51 @@
   overflow-y: auto;
 }
 
+.room-hero.is-scene-occluded .room-device-stage,
+.room-hero.is-scene-occluded .room-toy-car-stage,
+.room-hero.is-scene-occluded .room-vtex-trophy-stage,
+.room-hero.is-scene-occluded .room-object-lamp {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.room-hero.is-screen-entering .room-device-stage,
+.room-hero.is-screen-entering .room-toy-car-stage,
+.room-hero.is-screen-entering .room-vtex-trophy-stage,
+.room-hero.is-screen-entering .room-object-lamp {
+  pointer-events: none !important;
+}
+
+.room-hero.is-screen-entering .room-monitor-glow,
+.room-hero.is-screen-focused .room-monitor-glow {
+  opacity: 0 !important;
+}
+
+.room-hero.is-screen-entering .room-mouse-rgb,
+.room-hero.is-screen-focused .room-mouse-rgb {
+  animation-play-state: paused;
+}
+
+.room-hero.is-screen-entering .room-screen-ui,
+.room-hero.is-screen-entering .room-screen-header,
+.room-hero.is-screen-entering .room-visual-card,
+.room-hero.is-screen-focused .room-screen-ui,
+.room-hero.is-screen-focused .room-screen-header,
+.room-hero.is-screen-focused .room-visual-card {
+  box-shadow: none !important;
+}
+
+.room-hero.is-screen-entering .room-screen-grid,
+.room-hero.is-screen-focused .room-screen-grid {
+  opacity: 0.24 !important;
+}
+
+.room-hero.is-screen-entering .room-visual-card img,
+.room-hero.is-screen-focused .room-visual-card img {
+  opacity: 0.56;
+}
+
 .room-hero.is-screen-focused .room-device-stage,
 .room-hero.is-screen-focused .room-toy-car-stage,
 .room-hero.is-screen-focused .room-vtex-trophy-stage,
@@ -449,7 +504,7 @@
   height: 100%;
   object-fit: cover;
   object-position: 70% 42%;
-  filter: saturate(1.02) contrast(1.02) brightness(0.66);
+  opacity: 0.68;
   transform: scale(1.42);
 }
 
@@ -583,6 +638,9 @@
   outline: none;
   pointer-events: none;
   transform-style: preserve-3d;
+  transition:
+    opacity 240ms ease,
+    visibility 0s linear 240ms;
 }
 
 .room-cutout {
@@ -613,6 +671,9 @@
   pointer-events: auto;
   transform: rotate(-2deg);
   overflow: visible;
+  transition:
+    opacity 240ms ease,
+    visibility 0s linear 240ms;
 }
 
 .device-contact-shadow {
@@ -760,6 +821,9 @@
   pointer-events: auto;
   transform: rotate(-1deg);
   overflow: visible;
+  transition:
+    opacity 240ms ease,
+    visibility 0s linear 240ms;
 }
 
 .room-toy-car-stage::after {
@@ -783,6 +847,9 @@
   height: min(38vw, 590px);
   pointer-events: none;
   overflow: visible;
+  transition:
+    opacity 240ms ease,
+    visibility 0s linear 240ms;
 }
 
 .room-vtex-trophy-stage canvas {

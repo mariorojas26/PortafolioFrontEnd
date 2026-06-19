@@ -270,6 +270,15 @@ export function MonitorToyCar3D() {
     let isCarHovered = false;
     let isCarNear = false;
 
+    const isSceneSuspended = () => {
+      const roomRoot = host.closest(".room-hero");
+      return (
+        roomRoot?.classList.contains("is-screen-entering") ||
+        roomRoot?.classList.contains("is-scene-occluded") ||
+        roomRoot?.classList.contains("is-screen-focused")
+      );
+    };
+
     const setCarHint = (visible: boolean) => {
       if (carHintVisibleRef.current === visible) return;
       carHintVisibleRef.current = visible;
@@ -343,15 +352,12 @@ export function MonitorToyCar3D() {
       const rect = host.getBoundingClientRect();
       const nx = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
       const ny = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
-      const localX = (event.clientX - rect.left) / rect.width;
-      const localY = (event.clientY - rect.top) / rect.height;
       pointer.set(nx, -ny);
       raycaster.setFromCamera(pointer, camera);
 
       const car = loadedCarRef.current;
       const intersections = car ? raycaster.intersectObject(car.model, true) : [];
-      const visualNearArea = localX > 0.14 && localX < 0.86 && localY > 0.22 && localY < 0.78;
-      let near = intersections.length > 0 || visualNearArea;
+      let near = intersections.length > 0;
 
       if (car && !near) {
         const center = new THREE.Vector3();
@@ -360,7 +366,7 @@ export function MonitorToyCar3D() {
         const carX = (center.x * 0.5 + 0.5) * rect.width;
         const carY = (-center.y * 0.5 + 0.5) * rect.height;
         const distance = Math.hypot(event.clientX - rect.left - carX, event.clientY - rect.top - carY);
-        const nearRadius = THREE.MathUtils.clamp(rect.width * 0.26, 58, 96);
+        const nearRadius = THREE.MathUtils.clamp(rect.width * 0.18, 44, 78);
         near = distance < nearRadius;
       }
 
@@ -368,6 +374,8 @@ export function MonitorToyCar3D() {
     };
 
     const onPointerMove = (event: PointerEvent) => {
+      if (isSceneSuspended()) return;
+
       const { hit, near } = getHoveredCar(event);
       if (hit && !isCarHovered) {
         hoverPulse = 1;
@@ -393,6 +401,8 @@ export function MonitorToyCar3D() {
       if (!alive) return;
 
       frameId = 0;
+      if (isSceneSuspended()) return;
+
       let shouldContinue = false;
       const car = loadedCarRef.current;
       if (car && !reduceMotion) {
@@ -433,8 +443,31 @@ export function MonitorToyCar3D() {
     };
 
     function requestRender() {
-      if (!alive || frameId) return;
+      if (!alive || frameId || isSceneSuspended()) return;
       frameId = window.requestAnimationFrame(render);
+    };
+
+    const syncSceneSuspension = () => {
+      if (!isSceneSuspended()) {
+        requestRender();
+        return;
+      }
+
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+        frameId = 0;
+      }
+      isCarHovered = false;
+      isCarNear = false;
+      targetHover = 0;
+      targetProximity = 0;
+      host.style.cursor = "default";
+      setCarHint(false);
+      applyCarTransform(loadedCarRef.current, transformRef.current);
+      if (loadedCarRef.current) {
+        applySilhouetteHover(loadedCarRef.current, transformRef.current, 0);
+      }
+      renderer.render(scene, camera);
     };
 
     resize();
@@ -442,6 +475,11 @@ export function MonitorToyCar3D() {
 
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(host);
+    const roomRoot = host.closest(".room-hero");
+    const roomClassObserver = roomRoot ? new MutationObserver(syncSceneSuspension) : null;
+    if (roomRoot && roomClassObserver) {
+      roomClassObserver.observe(roomRoot, { attributes: true, attributeFilter: ["class"] });
+    }
     host.addEventListener("pointermove", onPointerMove);
     host.addEventListener("pointerleave", onPointerLeave);
     window.addEventListener(DESK_TRANSFORMS_CHANGE_EVENT, onTransformsChange);
@@ -464,6 +502,7 @@ export function MonitorToyCar3D() {
       window.clearTimeout(introTimer);
       window.clearTimeout(introReleaseTimer);
       resizeObserver.disconnect();
+      roomClassObserver?.disconnect();
       host.removeEventListener("pointermove", onPointerMove);
       host.removeEventListener("pointerleave", onPointerLeave);
       window.removeEventListener(DESK_TRANSFORMS_CHANGE_EVENT, onTransformsChange);

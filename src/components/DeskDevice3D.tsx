@@ -556,6 +556,15 @@ export function DeskDevice3D() {
     let isModelHovered = false;
     let isPhoneNear = false;
 
+    const isSceneSuspended = () => {
+      const roomRoot = host.closest(".room-hero");
+      return (
+        roomRoot?.classList.contains("is-screen-entering") ||
+        roomRoot?.classList.contains("is-scene-occluded") ||
+        roomRoot?.classList.contains("is-screen-focused")
+      );
+    };
+
     const setPhoneHint = (visible: boolean) => {
       if (phoneHintVisibleRef.current === visible) return;
       phoneHintVisibleRef.current = visible;
@@ -613,16 +622,13 @@ export function DeskDevice3D() {
       const rect = host.getBoundingClientRect();
       const nx = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
       const ny = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
-      const localX = (event.clientX - rect.left) / rect.width;
-      const localY = (event.clientY - rect.top) / rect.height;
 
       pointer.set(nx, -ny);
       raycaster.setFromCamera(pointer, camera);
 
       const phone = loadedAssetsRef.current.phone;
       const intersections = phone ? raycaster.intersectObject(phone.model, true) : [];
-      const visualNearArea = localX > 0.28 && localX < 0.6 && localY > 0.16 && localY < 0.8;
-      let near = intersections.length > 0 || visualNearArea;
+      let near = intersections.length > 0;
 
       if (phone && !near) {
         const center = new THREE.Vector3();
@@ -631,7 +637,7 @@ export function DeskDevice3D() {
         const phoneX = (center.x * 0.5 + 0.5) * rect.width;
         const phoneY = (-center.y * 0.5 + 0.5) * rect.height;
         const distance = Math.hypot(event.clientX - rect.left - phoneX, event.clientY - rect.top - phoneY);
-        const nearRadius = THREE.MathUtils.clamp(rect.width * 0.16, 90, 155);
+        const nearRadius = THREE.MathUtils.clamp(rect.width * 0.12, 72, 118);
         near = distance < nearRadius;
       }
 
@@ -639,6 +645,8 @@ export function DeskDevice3D() {
     };
 
     const onPointerMove = (event: PointerEvent) => {
+      if (isSceneSuspended()) return;
+
       const { hit, near, nx, ny } = getHoveredPhone(event);
 
       if (hit && !isModelHovered) {
@@ -670,6 +678,8 @@ export function DeskDevice3D() {
       if (!alive) return;
 
       frameId = 0;
+      if (isSceneSuspended()) return;
+
       let shouldContinue = false;
       const phone = loadedAssetsRef.current.phone;
       if (phone) {
@@ -719,9 +729,31 @@ export function DeskDevice3D() {
     };
 
     function requestRender() {
-      if (!alive || frameId) return;
+      if (!alive || frameId || isSceneSuspended()) return;
       frameId = window.requestAnimationFrame(render);
     }
+
+    const syncSceneSuspension = () => {
+      if (!isSceneSuspended()) {
+        requestRender();
+        return;
+      }
+
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+        frameId = 0;
+      }
+      isModelHovered = false;
+      isPhoneNear = false;
+      targetHover = 0;
+      targetProximity = 0;
+      targetTiltX = 0;
+      targetTiltY = 0;
+      host.style.cursor = "default";
+      setPhoneHint(false);
+      DEVICE_ASSET_IDS.forEach((assetId) => applyTransform(loadedAssetsRef.current[assetId], transformsRef.current.assets[assetId]));
+      renderer.render(scene, camera);
+    };
 
     resize();
     requestRenderRef.current = requestRender;
@@ -729,6 +761,11 @@ export function DeskDevice3D() {
 
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(host);
+    const roomRoot = host.closest(".room-hero");
+    const roomClassObserver = roomRoot ? new MutationObserver(syncSceneSuspension) : null;
+    if (roomRoot && roomClassObserver) {
+      roomClassObserver.observe(roomRoot, { attributes: true, attributeFilter: ["class"] });
+    }
     host.addEventListener("pointermove", onPointerMove);
     host.addEventListener("pointerleave", onPointerLeave);
     let introReleaseTimer = 0;
@@ -751,6 +788,7 @@ export function DeskDevice3D() {
       window.clearTimeout(introTimer);
       window.clearTimeout(introReleaseTimer);
       resizeObserver.disconnect();
+      roomClassObserver?.disconnect();
       host.removeEventListener("pointermove", onPointerMove);
       host.removeEventListener("pointerleave", onPointerLeave);
       disposeObject(scene);

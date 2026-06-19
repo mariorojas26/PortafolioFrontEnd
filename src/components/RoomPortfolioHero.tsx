@@ -68,6 +68,13 @@ const screenSections = [
   },
 ];
 const screenNavOrder = ["inicio", ...screenSections.map((section) => section.id)];
+const interactive3DLoadPlan = [
+  { id: "device", delay: 850 },
+  { id: "car", delay: 500 },
+  { id: "trophy", delay: 700 },
+] as const;
+
+type Interactive3DAsset = (typeof interactive3DLoadPlan)[number]["id"];
 
 type SmartAssetImageProps = ImgHTMLAttributes<HTMLImageElement> & {
   src: string;
@@ -99,9 +106,14 @@ function SmartAssetImage({ src, preferPngVariant = true, onError, ...props }: Sm
 export function RoomPortfolioHero() {
   const scope = useRef<HTMLElement>(null);
   const [activeScreenSection, setActiveScreenSection] = useState("inicio");
-  const [shouldLoadInteractive3D, setShouldLoadInteractive3D] = useState(false);
+  const [interactive3DAssets, setInteractive3DAssets] = useState<Record<Interactive3DAsset, boolean>>({
+    device: false,
+    car: false,
+    trophy: false,
+  });
 
   useEffect(() => {
+    let disposed = false;
     let timeoutId = 0;
     let idleId: number | undefined;
     const idleWindow = window as Window & {
@@ -109,19 +121,68 @@ export function RoomPortfolioHero() {
       cancelIdleCallback?: (handle: number) => void;
     };
 
-    const loadInteractive3D = () => setShouldLoadInteractive3D(true);
-
-    if (idleWindow.requestIdleCallback) {
-      idleId = idleWindow.requestIdleCallback(loadInteractive3D, { timeout: 700 });
-    } else {
-      timeoutId = window.setTimeout(loadInteractive3D, 260);
-    }
-
-    return () => {
+    const clearScheduledLoad = () => {
       window.clearTimeout(timeoutId);
       if (idleId !== undefined) {
         idleWindow.cancelIdleCallback?.(idleId);
+        idleId = undefined;
       }
+    };
+
+    let lastScrollIntentAt = performance.now();
+    const markScrollIntent = () => {
+      lastScrollIntentAt = performance.now();
+    };
+
+    const canLoad3D = () => {
+      const root = scope.current;
+      const hasSettled = performance.now() - lastScrollIntentAt > 650;
+      return hasSettled && !document.hidden && window.scrollY < window.innerHeight * 0.08 && !root?.classList.contains("is-screen-entering");
+    };
+
+    const scheduleLoad = (callback: () => void, delay: number) => {
+      clearScheduledLoad();
+      timeoutId = window.setTimeout(() => {
+        if (disposed) return;
+        if (idleWindow.requestIdleCallback) {
+          idleId = idleWindow.requestIdleCallback(callback, { timeout: 900 });
+          return;
+        }
+
+        callback();
+      }, delay);
+    };
+
+    const loadStep = (index: number) => {
+      if (disposed || index >= interactive3DLoadPlan.length) return;
+
+      if (!canLoad3D()) {
+        scheduleLoad(() => loadStep(index), 450);
+        return;
+      }
+
+      const assetId = interactive3DLoadPlan[index].id;
+      setInteractive3DAssets((currentAssets) => (
+        currentAssets[assetId] ? currentAssets : { ...currentAssets, [assetId]: true }
+      ));
+
+      const nextStep = interactive3DLoadPlan[index + 1];
+      if (nextStep) {
+        scheduleLoad(() => loadStep(index + 1), nextStep.delay);
+      }
+    };
+
+    scheduleLoad(() => loadStep(0), interactive3DLoadPlan[0].delay);
+    window.addEventListener("scroll", markScrollIntent, { passive: true });
+    window.addEventListener("wheel", markScrollIntent, { passive: true });
+    window.addEventListener("touchmove", markScrollIntent, { passive: true });
+
+    return () => {
+      disposed = true;
+      window.removeEventListener("scroll", markScrollIntent);
+      window.removeEventListener("wheel", markScrollIntent);
+      window.removeEventListener("touchmove", markScrollIntent);
+      clearScheduledLoad();
     };
   }, []);
 
@@ -174,7 +235,7 @@ export function RoomPortfolioHero() {
         .from(".room-layer", { autoAlpha: 0, y: 22, scale: 0.96, stagger: 0.035, duration: 0.62 }, "-=0.48")
         .from(".room-reveal", { y: 10, stagger: 0.025, duration: 0.42 }, "-=0.5");
 
-      gsap.to(".room-monitor-glow", {
+      const monitorGlowTween = gsap.to(".room-monitor-glow", {
         opacity: 0.78,
         duration: 2.4,
         repeat: -1,
@@ -183,30 +244,74 @@ export function RoomPortfolioHero() {
       });
 
       const scene = root.querySelector<HTMLElement>(".room-camera");
+      const monitorFrame = root.querySelector<HTMLElement>(".room-monitor");
       const panLayer = root.querySelector<HTMLElement>(".room-pan-layer");
-      if (!scene) return;
+      if (!scene || !monitorFrame) return;
 
-      gsap.set(scene, { rotationX: 0, rotationY: 0, x: 0, y: 0 });
+      gsap.set(scene, { rotationX: 0, rotationY: 0, x: 0, y: 0, scale: 1, transformOrigin: "50% 30%" });
+      gsap.set(monitorFrame, { x: 0, y: 0, scale: 1, transformOrigin: "50% 50%" });
       gsap.set(panLayer, { x: 0, y: 0 });
       const panXTo = panLayer ? gsap.quickTo(panLayer, "x", { duration: 0.18, ease: "power2.out" }) : undefined;
       const panYTo = panLayer ? gsap.quickTo(panLayer, "y", { duration: 0.18, ease: "power2.out" }) : undefined;
 
-      gsap.set(scene, { transformOrigin: "50% 34%" });
+      let wasEnteringScreen = false;
+      let wasScreenOccluding = false;
+      let wasSceneOccluded = false;
+      let wasFocusedScreen = false;
 
       const focusTimeline = gsap.timeline({
         scrollTrigger: {
           trigger: root,
           start: "top top",
           end: "+=115%",
-          scrub: 0.85,
+          scrub: true,
           pin: true,
           anticipatePin: 1,
+          fastScrollEnd: true,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
-            root.classList.toggle("is-screen-focused", self.progress > 0.72);
+            const isEnteringScreen = self.progress > 0.025;
+            const isScreenOccluding = self.progress > 0.72;
+            const isSceneOccluded = self.progress > 0.93;
+            const isFocusedScreen = self.progress > 0.96;
+
+            if (isEnteringScreen !== wasEnteringScreen) {
+              root.classList.toggle("is-screen-entering", isEnteringScreen);
+              if (isEnteringScreen) {
+                panXTo?.(0);
+                panYTo?.(0);
+                monitorGlowTween.pause(0);
+              } else {
+                monitorGlowTween.resume();
+              }
+              wasEnteringScreen = isEnteringScreen;
+            }
+
+            if (isScreenOccluding !== wasScreenOccluding) {
+              root.classList.toggle("is-screen-occluding", isScreenOccluding);
+              wasScreenOccluding = isScreenOccluding;
+            }
+
+            if (isSceneOccluded !== wasSceneOccluded) {
+              root.classList.toggle("is-scene-occluded", isSceneOccluded);
+              wasSceneOccluded = isSceneOccluded;
+            }
+
+            if (isFocusedScreen !== wasFocusedScreen) {
+              root.classList.toggle("is-screen-focused", isFocusedScreen);
+              wasFocusedScreen = isFocusedScreen;
+            }
           },
           onLeaveBack: () => {
+            wasEnteringScreen = false;
+            wasScreenOccluding = false;
+            wasSceneOccluded = false;
+            wasFocusedScreen = false;
+            root.classList.remove("is-screen-entering");
+            root.classList.remove("is-screen-occluding");
+            root.classList.remove("is-scene-occluded");
             root.classList.remove("is-screen-focused");
+            monitorGlowTween.resume();
           },
         },
       });
@@ -215,15 +320,13 @@ export function RoomPortfolioHero() {
         .to(
           scene,
           {
-            scale: () => (window.innerWidth < 768 ? 1.18 : 1.72),
-            x: () => (window.innerWidth < 768 ? 0 : window.innerWidth * -0.02),
-            y: () => (window.innerWidth < 768 ? window.innerHeight * 0.04 : window.innerHeight * 0.18),
+            scale: () => (window.innerWidth < 768 ? 1.18 : 1.66),
+            x: () => (window.innerWidth < 768 ? 0 : window.innerWidth * 0.004),
+            y: () => (window.innerWidth < 768 ? window.innerHeight * 0.035 : window.innerHeight * 0.15),
             ease: "none",
           },
           0,
         )
-        .to(".room-device-stage, .room-toy-car-stage, .room-vtex-trophy-stage, .room-object-lamp", { autoAlpha: 0, ease: "none" }, 0.08)
-        .to(".room-screen-ui", { backgroundColor: "rgba(11, 7, 20, 0.985)", ease: "none" }, 0)
         .to(".room-vignette", { opacity: 0.62, ease: "none" }, 0);
 
       ScrollTrigger.refresh();
@@ -236,6 +339,12 @@ export function RoomPortfolioHero() {
       };
 
       const onPointerMove = (event: PointerEvent) => {
+        if (root.classList.contains("is-screen-entering")) {
+          panXTo?.(0);
+          panYTo?.(0);
+          return;
+        }
+
         const rect = root.getBoundingClientRect();
         const nx = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
         const ny = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
@@ -359,11 +468,11 @@ export function RoomPortfolioHero() {
           <div className="room-layer room-base-locked room-object room-object-lamp" aria-hidden="true">
             <SmartAssetImage className="room-cutout h-full w-full object-contain" src={roomAssets.lamp} alt="" />
           </div>
-          {shouldLoadInteractive3D ? (
+          {interactive3DAssets.device || interactive3DAssets.car || interactive3DAssets.trophy ? (
             <Suspense fallback={null}>
-              <DeskDevice3D />
-              <MonitorToyCar3D />
-              <VtexTrophy3D />
+              {interactive3DAssets.device ? <DeskDevice3D /> : null}
+              {interactive3DAssets.car ? <MonitorToyCar3D /> : null}
+              {interactive3DAssets.trophy ? <VtexTrophy3D /> : null}
             </Suspense>
           ) : null}
         </div>
