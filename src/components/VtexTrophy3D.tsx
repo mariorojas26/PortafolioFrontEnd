@@ -6,6 +6,7 @@ import { desk3dTransforms, type Desk3DAssetTransform, type Desk3DShadowTransform
 const TROPHY_URL = "/assets/3d/trofeoVTEX.glb";
 const DESK_TRANSFORMS_CHANGE_EVENT = "desk3d-transforms-change";
 const TABLE_Y = -0.62;
+const TROPHY_INTERACTION_ENABLED = false;
 
 type LoadedTrophy = {
   root: THREE.Group;
@@ -43,7 +44,7 @@ function applyTrophyTransform(trophy: LoadedTrophy | null, transform: Desk3DAsse
 }
 
 function getRenderPixelRatio() {
-  return Math.min(Math.max(window.devicePixelRatio * 1.15, 1.55), 2.2);
+  return Math.min(Math.max(window.devicePixelRatio * 1.05, 1.45), 1.85);
 }
 
 function disposeObject(object: THREE.Object3D) {
@@ -296,7 +297,7 @@ export function VtexTrophy3D() {
       frameId = 0;
       let shouldContinue = false;
       const trophy = loadedTrophyRef.current;
-      if (trophy && !reduceMotion) {
+      if (trophy && !reduceMotion && TROPHY_INTERACTION_ENABLED) {
         const currentTransform = transformRef.current;
         const currentShadow = shadowRef.current;
         hoverProgress = THREE.MathUtils.lerp(hoverProgress, targetHover, targetHover > hoverProgress ? 0.3 : 0.14);
@@ -330,7 +331,12 @@ export function VtexTrophy3D() {
           Math.abs(trophy.root.position.z - currentTransform.position[2]) > 0.003 ||
           Math.abs(trophy.root.scale.x - (currentTransform.scale + hoverProgress * 0.035)) > 0.003;
       } else if (trophy) {
-        setHint(isHovered);
+        trophy.glow.intensity = 0;
+        trophy.glowMaterials.forEach((material) => {
+          material.emissiveIntensity = 0.035;
+          material.needsUpdate = true;
+        });
+        setHint(false);
       }
 
       renderer.render(scene, camera);
@@ -349,8 +355,10 @@ export function VtexTrophy3D() {
 
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(host);
-    host.addEventListener("pointermove", onPointerMove);
-    host.addEventListener("pointerleave", onPointerLeave);
+    if (TROPHY_INTERACTION_ENABLED) {
+      host.addEventListener("pointermove", onPointerMove);
+      host.addEventListener("pointerleave", onPointerLeave);
+    }
     window.addEventListener(DESK_TRANSFORMS_CHANGE_EVENT, onTransformsChange);
 
     return () => {
@@ -358,8 +366,10 @@ export function VtexTrophy3D() {
       window.cancelAnimationFrame(frameId);
       window.clearTimeout(loadTimer);
       resizeObserver.disconnect();
-      host.removeEventListener("pointermove", onPointerMove);
-      host.removeEventListener("pointerleave", onPointerLeave);
+      if (TROPHY_INTERACTION_ENABLED) {
+        host.removeEventListener("pointermove", onPointerMove);
+        host.removeEventListener("pointerleave", onPointerLeave);
+      }
       window.removeEventListener(DESK_TRANSFORMS_CHANGE_EVENT, onTransformsChange);
       disposeObject(scene);
       renderer.dispose();
@@ -369,7 +379,7 @@ export function VtexTrophy3D() {
   }, []);
 
   return (
-    <div ref={hostRef} className={`room-vtex-trophy-stage room-layer room-base-locked ${hintVisible ? "is-trophy-hovered" : ""}`} style={shadowStyle} aria-label="Trofeo VTEX IO en 3D">
+    <div ref={hostRef} className={`room-vtex-trophy-stage room-layer ${hintVisible ? "is-trophy-hovered" : ""}`} style={shadowStyle} aria-label="Trofeo VTEX IO en 3D">
       <div className="vtex-trophy-contact-shadow" aria-hidden="true" />
       <div className="vtex-trophy-action-glow" aria-hidden="true" />
       <div className="object-action-label object-action-label--trophy" aria-hidden="true">

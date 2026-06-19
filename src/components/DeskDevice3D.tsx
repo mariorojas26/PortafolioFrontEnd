@@ -799,7 +799,7 @@ export function DeskDevice3D() {
   return (
     <div
       ref={hostRef}
-      className={`room-device-stage room-layer room-base-locked ${phoneHintVisible ? "is-phone-near" : ""} ${phoneIntroActive ? "is-intro-pulsing" : ""}`}
+      className={`room-device-stage room-layer ${phoneHintVisible ? "is-phone-near" : ""} ${phoneIntroActive ? "is-intro-pulsing" : ""}`}
       style={{
         left: transforms.stage.left,
         bottom: transforms.stage.bottom,

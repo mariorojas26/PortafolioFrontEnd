@@ -35,8 +35,19 @@
 
 .room-camera {
   inset: -1.2vh -2.2vw;
+  z-index: 1;
   overflow: hidden;
   transform-origin: center;
+  will-change: transform;
+}
+
+.room-pan-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: visible;
+  transform-origin: center;
+  transform: translate3d(0, 0, 0);
   will-change: transform;
 }
 
@@ -770,7 +781,7 @@
   z-index: 22;
   width: min(42vw, 680px);
   height: min(38vw, 590px);
-  pointer-events: auto;
+  pointer-events: none;
   overflow: visible;
 }
 

@@ -477,7 +477,7 @@ export function MonitorToyCar3D() {
   return (
     <div
       ref={hostRef}
-      className={`room-toy-car-stage room-layer room-base-locked ${carHintVisible ? "is-car-near" : ""} ${carIntroActive ? "is-intro-pulsing" : ""}`}
+      className={`room-toy-car-stage room-layer ${carHintVisible ? "is-car-near" : ""} ${carIntroActive ? "is-intro-pulsing" : ""}`}
       aria-label="Carro Toyota GR Supra de juguete en 3D"
     >
       <div className="toy-car-action-glow" aria-hidden="true" />

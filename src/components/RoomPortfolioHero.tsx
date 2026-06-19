@@ -162,7 +162,7 @@ export function RoomPortfolioHero() {
       const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
       if (reduceMotion) {
-        gsap.set(".room-reveal, .room-layer, .room-camera", { autoAlpha: 1, x: 0, y: 0, scale: 1, rotation: 0 });
+        gsap.set(".room-reveal, .room-layer, .room-camera, .room-pan-layer", { autoAlpha: 1, x: 0, y: 0, scale: 1, rotation: 0 });
         return;
       }
 
@@ -183,21 +183,13 @@ export function RoomPortfolioHero() {
       });
 
       const scene = root.querySelector<HTMLElement>(".room-camera");
-      const base = root.querySelector<HTMLElement>(".room-base");
-      const monitor = root.querySelector<HTMLElement>(".room-monitor-pan");
-      const layers = gsap.utils.toArray<HTMLElement>(".room-layer.room-parallax");
-      const baseLockedLayers = gsap.utils.toArray<HTMLElement>(".room-base-locked");
+      const panLayer = root.querySelector<HTMLElement>(".room-pan-layer");
       if (!scene) return;
 
       gsap.set(scene, { rotationX: 0, rotationY: 0, x: 0, y: 0 });
-      const baseXTo = base ? gsap.quickTo(base, "x", { duration: 0.18, ease: "power2.out" }) : undefined;
-      const baseYTo = base ? gsap.quickTo(base, "y", { duration: 0.18, ease: "power2.out" }) : undefined;
-      const monitorXTo = monitor ? gsap.quickTo(monitor, "x", { duration: 0.18, ease: "power2.out" }) : undefined;
-      const monitorYTo = monitor ? gsap.quickTo(monitor, "y", { duration: 0.18, ease: "power2.out" }) : undefined;
-      const layerX = layers.map((layer, index) => gsap.quickTo(layer, "x", { duration: 0.2 + index * 0.01, ease: "power2.out" }));
-      const layerY = layers.map((layer, index) => gsap.quickTo(layer, "y", { duration: 0.2 + index * 0.01, ease: "power2.out" }));
-      const baseLockedX = baseLockedLayers.map((layer) => gsap.quickTo(layer, "x", { duration: 0.18, ease: "power2.out" }));
-      const baseLockedY = baseLockedLayers.map((layer) => gsap.quickTo(layer, "y", { duration: 0.18, ease: "power2.out" }));
+      gsap.set(panLayer, { x: 0, y: 0 });
+      const panXTo = panLayer ? gsap.quickTo(panLayer, "x", { duration: 0.18, ease: "power2.out" }) : undefined;
+      const panYTo = panLayer ? gsap.quickTo(panLayer, "y", { duration: 0.18, ease: "power2.out" }) : undefined;
 
       gsap.set(scene, { transformOrigin: "50% 34%" });
 
@@ -247,35 +239,13 @@ export function RoomPortfolioHero() {
         const rect = root.getBoundingClientRect();
         const nx = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
         const ny = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
-        const lookX = edgeIntent(nx);
-        const lookY = edgeIntent(ny);
-        const cameraX = lookX * -42;
-        const cameraY = lookY * -12;
-
-        baseXTo?.(cameraX);
-        baseYTo?.(cameraY);
-        monitorXTo?.(cameraX);
-        monitorYTo?.(cameraY);
-        baseLockedLayers.forEach((_, index) => {
-          baseLockedX[index](cameraX);
-          baseLockedY[index](cameraY);
-        });
-        layers.forEach((_, index) => {
-          const depth = 4.5 + index * 1.05;
-          layerX[index](lookX * -depth);
-          layerY[index](lookY * -depth * 0.34);
-        });
+        panXTo?.(edgeIntent(nx) * -42);
+        panYTo?.(edgeIntent(ny) * -12);
       };
 
       const onPointerLeave = () => {
-        baseXTo?.(0);
-        baseYTo?.(0);
-        monitorXTo?.(0);
-        monitorYTo?.(0);
-        baseLockedX.forEach((to) => to(0));
-        baseLockedY.forEach((to) => to(0));
-        layerX.forEach((to) => to(0));
-        layerY.forEach((to) => to(0));
+        panXTo?.(0);
+        panYTo?.(0);
       };
 
       root.addEventListener("pointermove", onPointerMove);
@@ -292,109 +262,111 @@ export function RoomPortfolioHero() {
   return (
     <section ref={scope} className="room-hero relative isolate min-h-[100svh] overflow-hidden bg-[#120b08] text-white">
       <div className="room-camera absolute inset-0 [transform-style:preserve-3d]">
-        <div className="room-mouse-rgb room-base-locked" aria-hidden="true" />
-        <SmartAssetImage className="room-base absolute inset-0 h-full w-full object-cover object-center" src={roomAssets.base} preferPngVariant={false} alt="Habitacion calida con escritorio de Mario Rojas" />
-        <div className="room-vignette absolute inset-0" />
+        <div className="room-pan-layer absolute inset-0">
+          <div className="room-mouse-rgb room-base-locked" aria-hidden="true" />
+          <SmartAssetImage className="room-base absolute inset-0 h-full w-full object-cover object-center" src={roomAssets.base} preferPngVariant={false} alt="Habitacion calida con escritorio de Mario Rojas" />
+          <div className="room-vignette absolute inset-0" />
 
-        <div className="room-monitor absolute">
-          <div className="room-monitor-pan absolute inset-0">
-            <div className="room-monitor-glow absolute inset-[6%] rounded-[1.4rem] bg-[#8b5cf6]/30 blur-3xl" />
-            <div className="room-screen-ui absolute inset-0 z-20 overflow-hidden rounded-[0.9rem] border border-white/10 bg-[#0b0714]/94 shadow-[0_30px_90px_rgba(0,0,0,.45)]">
-              <div className="room-screen-grid absolute inset-0 opacity-55" />
-              <header className="room-screen-header room-reveal">
-                <button className="room-screen-brand" type="button" onClick={() => handleScreenNav("inicio")}>
-                  <span className="room-screen-brand-mark">MR</span>
-                  <span className="room-screen-brand-copy">
-                    <strong>Mario</strong>
-                    <small>Portfolio creativo</small>
-                  </span>
-                </button>
+          <div className="room-monitor absolute">
+            <div className="room-monitor-pan absolute inset-0">
+              <div className="room-monitor-glow absolute inset-[6%] rounded-[1.4rem] bg-[#8b5cf6]/30 blur-3xl" />
+              <div className="room-screen-ui absolute inset-0 z-20 overflow-hidden rounded-[0.9rem] border border-white/10 bg-[#0b0714]/94 shadow-[0_30px_90px_rgba(0,0,0,.45)]">
+                <div className="room-screen-grid absolute inset-0 opacity-55" />
+                <header className="room-screen-header room-reveal">
+                  <button className="room-screen-brand" type="button" onClick={() => handleScreenNav("inicio")}>
+                    <span className="room-screen-brand-mark">MR</span>
+                    <span className="room-screen-brand-copy">
+                      <strong>Mario</strong>
+                      <small>Portfolio creativo</small>
+                    </span>
+                  </button>
 
-                <nav className="room-screen-nav" aria-label="Navegacion dentro del monitor">
-                  {navItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <button key={item.id} aria-current={activeScreenSection === item.id ? "page" : undefined} className={activeScreenSection === item.id ? "is-active" : ""} type="button" onClick={() => handleScreenNav(item.id)}>
-                        <Icon size={14} />
-                        <span>{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </nav>
-              </header>
-
-              <div className="room-screen-scroll" onScroll={handleScreenScroll}>
-                <main id="screen-inicio" className="room-screen-main">
-                  <div className="room-screen-copy">
-                    <p className="room-reveal room-kicker">Hola, soy</p>
-                    <h1 className="room-reveal font-display">Mario</h1>
-                    <p className="room-reveal room-role">Creative front-end, UX & VTEX IO</p>
-                    <p className="room-reveal room-intro">Creo experiencias digitales tranquilas, visuales y funcionales, con criterio de diseno y movimiento.</p>
-                    <div className="room-reveal room-screen-actions">
-                      <button type="button" onClick={() => handleScreenNav("proyectos")}>
-                        Explorar proyectos
-                        <Rocket size={15} />
-                      </button>
-                      <button type="button" onClick={() => handleScreenNav("sobre-mi")}>Sobre mi</button>
-                    </div>
-                  </div>
-
-                  <figure className="room-reveal room-visual-card" aria-label="Visual creativo de escritorio digital">
-                    <SmartAssetImage src={roomAssets.base} preferPngVariant={false} alt="" />
-                    <div className="room-visual-overlay">
-                      <span>Diseno</span>
-                      <span>UX</span>
-                      <span>Motion</span>
-                    </div>
-                  </figure>
-
-                  <div className="room-reveal room-screen-stats">
-                    {screenStats.map((item) => {
+                  <nav className="room-screen-nav" aria-label="Navegacion dentro del monitor">
+                    {navItems.map((item) => {
                       const Icon = item.icon;
                       return (
-                        <div key={item.label}>
-                          <Icon size={22} />
-                          <strong>{item.value}</strong>
+                        <button key={item.id} aria-current={activeScreenSection === item.id ? "page" : undefined} className={activeScreenSection === item.id ? "is-active" : ""} type="button" onClick={() => handleScreenNav(item.id)}>
+                          <Icon size={14} />
                           <span>{item.label}</span>
-                        </div>
+                        </button>
                       );
                     })}
-                  </div>
-                </main>
+                  </nav>
+                </header>
 
-                <div className="room-screen-sections">
-                  {screenSections.map((section) => (
-                    <section key={section.id} id={`screen-${section.id}`} className="screen-info-panel">
-                      <p>{section.eyebrow}</p>
-                      <h2>{section.title}</h2>
-                      <span>{section.copy}</span>
-                    </section>
-                  ))}
-                  <section className="screen-info-panel screen-info-panel--tools">
-                    <p>Herramientas</p>
-                    <h2>Lo que uso para hacerlo real</h2>
-                    <div>
-                      {techStack.map((tech) => (
-                        <span key={tech}>{tech}</span>
-                      ))}
+                <div className="room-screen-scroll" onScroll={handleScreenScroll}>
+                  <main id="screen-inicio" className="room-screen-main">
+                    <div className="room-screen-copy">
+                      <p className="room-reveal room-kicker">Hola, soy</p>
+                      <h1 className="room-reveal font-display">Mario</h1>
+                      <p className="room-reveal room-role">Creative front-end, UX & VTEX IO</p>
+                      <p className="room-reveal room-intro">Creo experiencias digitales tranquilas, visuales y funcionales, con criterio de diseno y movimiento.</p>
+                      <div className="room-reveal room-screen-actions">
+                        <button type="button" onClick={() => handleScreenNav("proyectos")}>
+                          Explorar proyectos
+                          <Rocket size={15} />
+                        </button>
+                        <button type="button" onClick={() => handleScreenNav("sobre-mi")}>Sobre mi</button>
+                      </div>
                     </div>
-                  </section>
+
+                    <figure className="room-reveal room-visual-card" aria-label="Visual creativo de escritorio digital">
+                      <SmartAssetImage src={roomAssets.base} preferPngVariant={false} alt="" />
+                      <div className="room-visual-overlay">
+                        <span>Diseno</span>
+                        <span>UX</span>
+                        <span>Motion</span>
+                      </div>
+                    </figure>
+
+                    <div className="room-reveal room-screen-stats">
+                      {screenStats.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <div key={item.label}>
+                            <Icon size={22} />
+                            <strong>{item.value}</strong>
+                            <span>{item.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </main>
+
+                  <div className="room-screen-sections">
+                    {screenSections.map((section) => (
+                      <section key={section.id} id={`screen-${section.id}`} className="screen-info-panel">
+                        <p>{section.eyebrow}</p>
+                        <h2>{section.title}</h2>
+                        <span>{section.copy}</span>
+                      </section>
+                    ))}
+                    <section className="screen-info-panel screen-info-panel--tools">
+                      <p>Herramientas</p>
+                      <h2>Lo que uso para hacerlo real</h2>
+                      <div>
+                        {techStack.map((tech) => (
+                          <span key={tech}>{tech}</span>
+                        ))}
+                      </div>
+                    </section>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="room-layer room-base-locked room-object room-object-lamp" aria-hidden="true">
-          <SmartAssetImage className="room-cutout h-full w-full object-contain" src={roomAssets.lamp} alt="" />
+          <div className="room-layer room-base-locked room-object room-object-lamp" aria-hidden="true">
+            <SmartAssetImage className="room-cutout h-full w-full object-contain" src={roomAssets.lamp} alt="" />
+          </div>
+          {shouldLoadInteractive3D ? (
+            <Suspense fallback={null}>
+              <DeskDevice3D />
+              <MonitorToyCar3D />
+              <VtexTrophy3D />
+            </Suspense>
+          ) : null}
         </div>
-        {shouldLoadInteractive3D ? (
-          <Suspense fallback={null}>
-            <DeskDevice3D />
-            <MonitorToyCar3D />
-            <VtexTrophy3D />
-          </Suspense>
-        ) : null}
       </div>
     </section>
   );
