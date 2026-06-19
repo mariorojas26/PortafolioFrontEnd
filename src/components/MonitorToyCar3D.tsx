@@ -19,7 +19,7 @@ type GltfTextureParser = {
 };
 
 function getRenderPixelRatio() {
-  return Math.min(Math.max(window.devicePixelRatio * 1.8, 2.8), 4);
+  return Math.min(Math.max(window.devicePixelRatio * 1.25, 1.75), 2.65);
 }
 
 function disposeObject(object: THREE.Object3D) {
@@ -284,6 +284,7 @@ export function MonitorToyCar3D() {
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(getRenderPixelRatio());
       renderer.setSize(width, height, false);
+      requestRender();
     };
 
     const loader = new GLTFLoader();
@@ -326,6 +327,7 @@ export function MonitorToyCar3D() {
         silhouetteRoot,
         silhouetteMaterials,
       };
+      requestRender();
     });
 
     const onTransformsChange = (event: Event) => {
@@ -334,6 +336,7 @@ export function MonitorToyCar3D() {
 
       transformRef.current = nextTransforms.assets.car;
       applyCarTransform(loadedCarRef.current, transformRef.current);
+      requestRender();
     };
 
     const getHoveredCar = (event: PointerEvent) => {
@@ -374,6 +377,7 @@ export function MonitorToyCar3D() {
       targetHover = hit ? 1 : 0;
       targetProximity = near ? 1 : 0;
       host.style.cursor = hit || near ? "pointer" : "default";
+      requestRender();
     };
 
     const onPointerLeave = () => {
@@ -382,11 +386,14 @@ export function MonitorToyCar3D() {
       targetHover = 0;
       targetProximity = 0;
       host.style.cursor = "default";
+      requestRender();
     };
 
     const render = () => {
       if (!alive) return;
 
+      frameId = 0;
+      let shouldContinue = false;
       const car = loadedCarRef.current;
       if (car && !reduceMotion) {
         const currentTransform = transformRef.current;
@@ -406,16 +413,32 @@ export function MonitorToyCar3D() {
         car.root.scale.setScalar(THREE.MathUtils.lerp(car.root.scale.x, currentTransform.scale, 0.26));
         applySilhouetteHover(car, currentTransform, hoverProgress);
         setCarHint(isCarNear || proximityProgress > 0.12 || hoverProgress > 0.08 || introPulse > 0.06);
+        shouldContinue =
+          Math.abs(hoverProgress - targetHover) > 0.003 ||
+          Math.abs(proximityProgress - targetProximity) > 0.003 ||
+          hoverPulse > 0.003 ||
+          introPulse > 0.003 ||
+          Math.abs(car.root.position.x - currentTransform.position[0]) > 0.003 ||
+          Math.abs(car.root.position.y - (currentTransform.position[1] + hop)) > 0.003 ||
+          Math.abs(car.root.position.z - currentTransform.position[2]) > 0.003 ||
+          Math.abs(car.root.scale.x - currentTransform.scale) > 0.003;
       } else if (car) {
         setCarHint(isCarNear);
       }
 
       renderer.render(scene, camera);
+      if (alive && shouldContinue) {
+        requestRender();
+      }
+    };
+
+    function requestRender() {
+      if (!alive || frameId) return;
       frameId = window.requestAnimationFrame(render);
     };
 
     resize();
-    render();
+    requestRender();
 
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(host);
@@ -427,9 +450,11 @@ export function MonitorToyCar3D() {
       introPulse = reduceMotion ? 0 : 1;
       setCarIntroActive(true);
       setCarHint(true);
+      requestRender();
       introReleaseTimer = window.setTimeout(() => {
         setCarIntroActive(false);
         if (!isCarNear) setCarHint(false);
+        requestRender();
       }, 1450);
     }, 1120);
 

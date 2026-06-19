@@ -43,7 +43,7 @@ function applyTrophyTransform(trophy: LoadedTrophy | null, transform: Desk3DAsse
 }
 
 function getRenderPixelRatio() {
-  return Math.min(Math.max(window.devicePixelRatio * 1.8, 2.8), 4);
+  return Math.min(Math.max(window.devicePixelRatio * 1.15, 1.55), 2.2);
 }
 
 function disposeObject(object: THREE.Object3D) {
@@ -187,6 +187,7 @@ export function VtexTrophy3D() {
 
     let alive = true;
     let frameId = 0;
+    let loadTimer = 0;
     let targetHover = 0;
     let hoverProgress = 0;
     let hoverPulse = 0;
@@ -206,10 +207,11 @@ export function VtexTrophy3D() {
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(getRenderPixelRatio());
       renderer.setSize(width, height, false);
+      requestRender();
     };
 
     const loader = new GLTFLoader();
-    loader.load(TROPHY_URL, (gltf) => {
+    const loadTrophy = () => loader.load(TROPHY_URL, (gltf) => {
       if (!alive) {
         disposeObject(gltf.scene);
         return;
@@ -244,7 +246,9 @@ export function VtexTrophy3D() {
       };
       loadedTrophyRef.current = loadedTrophy;
       applyTrophyTransform(loadedTrophy, transformRef.current, shadowRef.current);
+      requestRender();
     });
+    loadTimer = window.setTimeout(loadTrophy, 420);
 
     const onTransformsChange = (event: Event) => {
       const nextTransforms = (event as CustomEvent<Desk3DTransforms>).detail;
@@ -254,6 +258,7 @@ export function VtexTrophy3D() {
       shadowRef.current = nextTransforms.shadows.trophy;
       setShadowStyle(getTrophyShadowStyle(nextTransforms.shadows.trophy));
       applyTrophyTransform(loadedTrophyRef.current, transformRef.current, shadowRef.current);
+      requestRender();
     };
 
     const getHover = (event: PointerEvent) => {
@@ -275,17 +280,21 @@ export function VtexTrophy3D() {
       isHovered = hit;
       targetHover = hit ? 1 : 0;
       host.style.cursor = hit ? "pointer" : "default";
+      requestRender();
     };
 
     const onPointerLeave = () => {
       isHovered = false;
       targetHover = 0;
       host.style.cursor = "default";
+      requestRender();
     };
 
     const render = () => {
       if (!alive) return;
 
+      frameId = 0;
+      let shouldContinue = false;
       const trophy = loadedTrophyRef.current;
       if (trophy && !reduceMotion) {
         const currentTransform = transformRef.current;
@@ -313,16 +322,30 @@ export function VtexTrophy3D() {
         });
 
         setHint(hoverProgress > 0.08 || isHovered);
+        shouldContinue =
+          Math.abs(hoverProgress - targetHover) > 0.003 ||
+          hoverPulse > 0.003 ||
+          Math.abs(trophy.root.position.x - currentTransform.position[0]) > 0.003 ||
+          Math.abs(trophy.root.position.y - (currentTransform.position[1] + lift)) > 0.003 ||
+          Math.abs(trophy.root.position.z - currentTransform.position[2]) > 0.003 ||
+          Math.abs(trophy.root.scale.x - (currentTransform.scale + hoverProgress * 0.035)) > 0.003;
       } else if (trophy) {
         setHint(isHovered);
       }
 
       renderer.render(scene, camera);
+      if (alive && shouldContinue) {
+        requestRender();
+      }
+    };
+
+    function requestRender() {
+      if (!alive || frameId) return;
       frameId = window.requestAnimationFrame(render);
     };
 
     resize();
-    render();
+    requestRender();
 
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(host);
@@ -333,6 +356,7 @@ export function VtexTrophy3D() {
     return () => {
       alive = false;
       window.cancelAnimationFrame(frameId);
+      window.clearTimeout(loadTimer);
       resizeObserver.disconnect();
       host.removeEventListener("pointermove", onPointerMove);
       host.removeEventListener("pointerleave", onPointerLeave);

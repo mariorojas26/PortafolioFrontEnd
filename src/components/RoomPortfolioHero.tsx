@@ -1,10 +1,11 @@
 import { BriefcaseBusiness, Code2, Home, Mail, Rocket, UserRound, Wrench } from "lucide-react";
 import type { ImgHTMLAttributes, SyntheticEvent, UIEvent } from "react";
-import { useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { gsap, ScrollTrigger, useGSAP } from "../lib/gsap";
-import { DeskDevice3D } from "./DeskDevice3D";
-import { MonitorToyCar3D } from "./MonitorToyCar3D";
-import { VtexTrophy3D } from "./VtexTrophy3D";
+
+const DeskDevice3D = lazy(() => import("./DeskDevice3D").then((module) => ({ default: module.DeskDevice3D })));
+const MonitorToyCar3D = lazy(() => import("./MonitorToyCar3D").then((module) => ({ default: module.MonitorToyCar3D })));
+const VtexTrophy3D = lazy(() => import("./VtexTrophy3D").then((module) => ({ default: module.VtexTrophy3D })));
 
 const roomAssets = {
   base: "/assets/Habitacion/Fondobase2.png",
@@ -98,6 +99,31 @@ function SmartAssetImage({ src, preferPngVariant = true, onError, ...props }: Sm
 export function RoomPortfolioHero() {
   const scope = useRef<HTMLElement>(null);
   const [activeScreenSection, setActiveScreenSection] = useState("inicio");
+  const [shouldLoadInteractive3D, setShouldLoadInteractive3D] = useState(false);
+
+  useEffect(() => {
+    let timeoutId = 0;
+    let idleId: number | undefined;
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
+    const loadInteractive3D = () => setShouldLoadInteractive3D(true);
+
+    if (idleWindow.requestIdleCallback) {
+      idleId = idleWindow.requestIdleCallback(loadInteractive3D, { timeout: 700 });
+    } else {
+      timeoutId = window.setTimeout(loadInteractive3D, 260);
+    }
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (idleId !== undefined) {
+        idleWindow.cancelIdleCallback?.(idleId);
+      }
+    };
+  }, []);
 
   const handleScreenNav = (sectionId: string) => {
     const target = scope.current?.querySelector<HTMLElement>(`#screen-${sectionId}`);
@@ -362,9 +388,13 @@ export function RoomPortfolioHero() {
         <div className="room-layer room-base-locked room-object room-object-lamp" aria-hidden="true">
           <SmartAssetImage className="room-cutout h-full w-full object-contain" src={roomAssets.lamp} alt="" />
         </div>
-        <DeskDevice3D />
-        <MonitorToyCar3D />
-        <VtexTrophy3D />
+        {shouldLoadInteractive3D ? (
+          <Suspense fallback={null}>
+            <DeskDevice3D />
+            <MonitorToyCar3D />
+            <VtexTrophy3D />
+          </Suspense>
+        ) : null}
       </div>
     </section>
   );

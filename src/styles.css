@@ -89,12 +89,10 @@
 @keyframes mouseRgbShift {
   0% {
     background-position: 0% 50%;
-    filter: hue-rotate(0deg) blur(2.5px) saturate(1.9) brightness(1.24);
   }
 
   100% {
     background-position: 260% 50%;
-    filter: hue-rotate(360deg) blur(2.5px) saturate(1.9) brightness(1.24);
   }
 }
 
@@ -324,6 +322,14 @@
 
 .room-hero.is-screen-focused .room-screen-scroll {
   overflow-y: auto;
+}
+
+.room-hero.is-screen-focused .room-device-stage,
+.room-hero.is-screen-focused .room-toy-car-stage,
+.room-hero.is-screen-focused .room-vtex-trophy-stage,
+.room-hero.is-screen-focused .room-object-lamp {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .room-screen-scroll::-webkit-scrollbar {

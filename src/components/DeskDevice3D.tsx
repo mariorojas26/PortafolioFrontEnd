@@ -56,7 +56,7 @@ type SceneControls = {
 };
 
 function getRenderPixelRatio() {
-  return Math.min(Math.max(window.devicePixelRatio * 1.75, 2.75), 4);
+  return Math.min(Math.max(window.devicePixelRatio * 1.25, 1.75), 2.65);
 }
 
 function disposeObject(object: THREE.Object3D) {
@@ -450,6 +450,7 @@ export function DeskDevice3D() {
   const [phoneHintVisible, setPhoneHintVisible] = useState(false);
   const [phoneIntroActive, setPhoneIntroActive] = useState(false);
   const transformsRef = useRef(transforms);
+  const requestRenderRef = useRef<(() => void) | null>(null);
   const loadedAssetsRef = useRef<Partial<Record<DeviceAssetId, LoadedAsset>>>({});
   const sceneControlsRef = useRef<SceneControls | null>(null);
   const phoneHintVisibleRef = useRef(false);
@@ -460,6 +461,7 @@ export function DeskDevice3D() {
     applySceneControls(sceneControlsRef.current, transforms);
     DEVICE_ASSET_IDS.forEach((assetId) => applyTransform(loadedAssetsRef.current[assetId], transforms.assets[assetId]));
     window.dispatchEvent(new CustomEvent<Desk3DTransforms>(DESK_TRANSFORMS_CHANGE_EVENT, { detail: transforms }));
+    requestRenderRef.current?.();
   }, [transforms]);
 
   useEffect(() => {
@@ -568,6 +570,7 @@ export function DeskDevice3D() {
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(getRenderPixelRatio());
       renderer.setSize(width, height, false);
+      requestRender();
     };
 
     const loader = new GLTFLoader();
@@ -602,6 +605,7 @@ export function DeskDevice3D() {
         const loadedAsset = { root, model, baseScale };
         loadedAssetsRef.current[assetId] = loadedAsset;
         applyTransform(loadedAsset, transformsRef.current.assets[assetId]);
+        requestRender();
       });
     });
 
@@ -648,6 +652,7 @@ export function DeskDevice3D() {
       targetTiltY = hit ? THREE.MathUtils.clamp(nx, -1, 1) * 0.08 : 0;
       targetTiltX = hit ? THREE.MathUtils.clamp(ny, -1, 1) * -0.04 : 0;
       host.style.cursor = hit || near ? "pointer" : "default";
+      requestRender();
     };
 
     const onPointerLeave = () => {
@@ -658,11 +663,14 @@ export function DeskDevice3D() {
       targetTiltX = 0;
       targetTiltY = 0;
       host.style.cursor = "default";
+      requestRender();
     };
 
     const render = () => {
       if (!alive) return;
 
+      frameId = 0;
+      let shouldContinue = false;
       const phone = loadedAssetsRef.current.phone;
       if (phone) {
         const currentTransform = transformsRef.current.assets.phone;
@@ -675,27 +683,49 @@ export function DeskDevice3D() {
           const introBounce = Math.sin((1 - introPulse) * Math.PI * 2) * introPulse * 0.07;
           const proximityLift = proximityProgress * 0.045;
 
-          phone.root.position.y = THREE.MathUtils.lerp(phone.root.position.y, currentTransform.position[1] + hoverProgress * 0.18 + proximityLift + introBounce, 0.2);
+          const targetY = currentTransform.position[1] + hoverProgress * 0.18 + proximityLift + introBounce;
+          const targetRotY = currentTransform.rotation[1] + targetTiltY + hoverProgress * 0.17 + proximityProgress * 0.045 + hoverPulse * 0.3 + introBounce * 0.7;
+          const targetRotX = currentTransform.rotation[0] + targetTiltX - hoverProgress * 0.065 - proximityProgress * 0.018;
+          const targetRotZ = currentTransform.rotation[2] - hoverProgress * 0.04;
+
+          phone.root.position.y = THREE.MathUtils.lerp(phone.root.position.y, targetY, 0.2);
           phone.root.rotation.y = THREE.MathUtils.lerp(
             phone.root.rotation.y,
-            currentTransform.rotation[1] + targetTiltY + hoverProgress * 0.17 + proximityProgress * 0.045 + hoverPulse * 0.3 + introBounce * 0.7,
+            targetRotY,
             0.18,
           );
-          phone.root.rotation.x = THREE.MathUtils.lerp(phone.root.rotation.x, currentTransform.rotation[0] + targetTiltX - hoverProgress * 0.065 - proximityProgress * 0.018, 0.16);
-          phone.root.rotation.z = THREE.MathUtils.lerp(phone.root.rotation.z, currentTransform.rotation[2] - hoverProgress * 0.04, 0.16);
+          phone.root.rotation.x = THREE.MathUtils.lerp(phone.root.rotation.x, targetRotX, 0.16);
+          phone.root.rotation.z = THREE.MathUtils.lerp(phone.root.rotation.z, targetRotZ, 0.16);
 
           setPhoneHint(isPhoneNear || proximityProgress > 0.12 || hoverProgress > 0.08 || introPulse > 0.06);
+          shouldContinue =
+            Math.abs(hoverProgress - targetHover) > 0.003 ||
+            Math.abs(proximityProgress - targetProximity) > 0.003 ||
+            hoverPulse > 0.003 ||
+            introPulse > 0.003 ||
+            Math.abs(phone.root.position.y - targetY) > 0.003 ||
+            Math.abs(phone.root.rotation.x - targetRotX) > 0.003 ||
+            Math.abs(phone.root.rotation.y - targetRotY) > 0.003 ||
+            Math.abs(phone.root.rotation.z - targetRotZ) > 0.003;
         } else {
           setPhoneHint(isPhoneNear);
         }
       }
 
       renderer.render(scene, camera);
-      frameId = window.requestAnimationFrame(render);
+      if (alive && shouldContinue) {
+        requestRender();
+      }
     };
 
+    function requestRender() {
+      if (!alive || frameId) return;
+      frameId = window.requestAnimationFrame(render);
+    }
+
     resize();
-    render();
+    requestRenderRef.current = requestRender;
+    requestRender();
 
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(host);
@@ -706,15 +736,18 @@ export function DeskDevice3D() {
       introPulse = reduceMotion ? 0 : 1;
       setPhoneIntroActive(true);
       setPhoneHint(true);
+      requestRender();
       introReleaseTimer = window.setTimeout(() => {
         setPhoneIntroActive(false);
         if (!isPhoneNear) setPhoneHint(false);
+        requestRender();
       }, 1450);
     }, 1000);
 
     return () => {
       alive = false;
       window.cancelAnimationFrame(frameId);
+      requestRenderRef.current = null;
       window.clearTimeout(introTimer);
       window.clearTimeout(introReleaseTimer);
       resizeObserver.disconnect();
