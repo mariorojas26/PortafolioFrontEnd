@@ -845,7 +845,7 @@
   z-index: 22;
   width: min(42vw, 680px);
   height: min(38vw, 590px);
-  pointer-events: none;
+  pointer-events: auto;
   overflow: visible;
   transition:
     opacity 240ms ease,
@@ -881,16 +881,16 @@
 
 .vtex-trophy-action-glow {
   position: absolute;
-  left: 18%;
-  top: 9%;
+  left: 24%;
+  top: 13%;
   z-index: 1;
-  width: 66%;
-  height: 58%;
+  width: 52%;
+  height: 44%;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 52% 42%, rgba(255, 25, 132, 0.5), rgba(255, 25, 132, 0.12) 44%, transparent 72%),
-    radial-gradient(circle at 46% 58%, rgba(255, 177, 45, 0.22), transparent 62%);
-  filter: blur(22px);
+    radial-gradient(circle at 52% 42%, rgba(255, 25, 132, 0.42), rgba(255, 25, 132, 0.1) 44%, transparent 72%),
+    radial-gradient(circle at 46% 58%, rgba(255, 177, 45, 0.12), transparent 62%);
+  filter: blur(18px);
   mix-blend-mode: screen;
   opacity: 0;
   transform: scale(0.84);
@@ -900,20 +900,21 @@
 }
 
 .room-vtex-trophy-stage.is-trophy-hovered .vtex-trophy-contact-shadow {
-  opacity: calc(var(--trophy-shadow-opacity, 0.72) * 0.74);
-  filter: blur(calc(var(--trophy-shadow-blur, 8px) + 3px));
-  transform: rotate(-4deg) scale(1.08);
+  opacity: var(--trophy-shadow-opacity, 0.72);
+  filter: blur(var(--trophy-shadow-blur, 8px));
+  transform: rotate(-4deg);
 }
 
 .room-vtex-trophy-stage.is-trophy-hovered .vtex-trophy-action-glow {
-  opacity: 0.88;
+  opacity: 0.5;
   transform: scale(1);
 }
 
 .object-action-label--trophy {
-  right: 5%;
-  top: 18%;
+  left: 41%;
+  top: 50%;
   color: #ffe1f1;
+  white-space: nowrap;
 }
 
 .object-action-label--trophy::before {

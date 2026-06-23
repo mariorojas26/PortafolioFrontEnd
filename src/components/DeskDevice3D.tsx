@@ -4,6 +4,7 @@ import { ChevronDown, GripHorizontal, Save, SlidersHorizontal } from "lucide-rea
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { desk3dTransforms, type Desk3DAssetId, type Desk3DAssetTransform, type Desk3DShadowTransform, type Desk3DTransforms } from "../data/desk3dTransforms";
+import { getThreeRenderSettings } from "../lib/threePerformance";
 
 const DESK_TRANSFORMS_CHANGE_EVENT = "desk3d-transforms-change";
 
@@ -54,10 +55,6 @@ type SceneControls = {
   rimLight: THREE.PointLight;
   deskShadowReceiver: THREE.Mesh<THREE.PlaneGeometry, THREE.ShadowMaterial>;
 };
-
-function getRenderPixelRatio() {
-  return Math.min(Math.max(window.devicePixelRatio * 1.25, 1.75), 2.65);
-}
 
 function disposeObject(object: THREE.Object3D) {
   object.traverse((child) => {
@@ -143,10 +140,10 @@ function applySceneControls(controls: SceneControls | null, transforms: Desk3DTr
   controls.deskShadowReceiver.material.needsUpdate = true;
 }
 
-function prepareModel(assetId: DeviceAssetId, model: THREE.Object3D, renderer: THREE.WebGLRenderer) {
+function prepareModel(assetId: DeviceAssetId, model: THREE.Object3D, renderer: THREE.WebGLRenderer, useRealtimeShadows: boolean) {
   model.traverse((child) => {
     if (!(child instanceof THREE.Mesh)) return;
-    child.castShadow = assetId === "phone";
+    child.castShadow = useRealtimeShadows && assetId === "phone";
     child.receiveShadow = false;
 
     const materials = Array.isArray(child.material) ? child.material : [child.material];
@@ -469,11 +466,12 @@ export function DeskDevice3D() {
     if (!host) return;
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const renderSettings = getThreeRenderSettings("large");
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
-      antialias: true,
+      antialias: renderSettings.antialias,
       powerPreference: "high-performance",
     });
     const raycaster = new THREE.Raycaster();
@@ -483,9 +481,11 @@ export function DeskDevice3D() {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = transformsRef.current.lighting.exposure;
-    renderer.setPixelRatio(getRenderPixelRatio());
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setPixelRatio(renderSettings.pixelRatio);
+    renderer.shadowMap.enabled = renderSettings.useRealtimeShadows;
+    if (renderSettings.useRealtimeShadows) {
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
     host.appendChild(renderer.domElement);
 
     camera.position.set(1.72, 1.24, 6.2);
@@ -496,8 +496,8 @@ export function DeskDevice3D() {
 
     const keyLight = new THREE.DirectionalLight(0xffb35c, transformsRef.current.lighting.key);
     keyLight.position.set(-3.8, 6.1, 3.35);
-    keyLight.castShadow = true;
-    keyLight.shadow.mapSize.set(1024, 1024);
+    keyLight.castShadow = renderSettings.useRealtimeShadows;
+    keyLight.shadow.mapSize.set(renderSettings.shadowMapSize, renderSettings.shadowMapSize);
     keyLight.shadow.radius = transformsRef.current.shadows.phone.contactBlur;
     keyLight.shadow.camera.left = -3.2;
     keyLight.shadow.camera.right = 3.2;
@@ -528,7 +528,7 @@ export function DeskDevice3D() {
     );
     deskShadowReceiver.rotation.x = -Math.PI / 2;
     deskShadowReceiver.position.set(-0.18, transformsRef.current.tableY - 0.018, 0.48);
-    deskShadowReceiver.receiveShadow = true;
+    deskShadowReceiver.receiveShadow = renderSettings.useRealtimeShadows;
     scene.add(deskShadowReceiver);
     scene.add(assetGroup);
     sceneControlsRef.current = { renderer, ambientLight, keyLight, deskFill, rimLight, deskShadowReceiver };
@@ -577,7 +577,7 @@ export function DeskDevice3D() {
       const height = Math.max(1, Math.round(rect.height));
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      renderer.setPixelRatio(getRenderPixelRatio());
+      renderer.setPixelRatio(renderSettings.pixelRatio);
       renderer.setSize(width, height, false);
       requestRender();
     };
@@ -608,7 +608,7 @@ export function DeskDevice3D() {
 
         const root = new THREE.Group();
         root.add(model);
-        prepareModel(assetId, model, renderer);
+        prepareModel(assetId, model, renderer, renderSettings.useRealtimeShadows);
         assetGroup.add(root);
 
         const loadedAsset = { root, model, baseScale };

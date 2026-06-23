@@ -2,6 +2,7 @@ import { BriefcaseBusiness, Code2, Home, Mail, Rocket, UserRound, Wrench } from 
 import type { ImgHTMLAttributes, SyntheticEvent, UIEvent } from "react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { gsap, ScrollTrigger, useGSAP } from "../lib/gsap";
+import { getThreeQualityTier } from "../lib/threePerformance";
 
 const DeskDevice3D = lazy(() => import("./DeskDevice3D").then((module) => ({ default: module.DeskDevice3D })));
 const MonitorToyCar3D = lazy(() => import("./MonitorToyCar3D").then((module) => ({ default: module.MonitorToyCar3D })));
@@ -68,13 +69,13 @@ const screenSections = [
   },
 ];
 const screenNavOrder = ["inicio", ...screenSections.map((section) => section.id)];
-const interactive3DLoadPlan = [
+const baseInteractive3DLoadPlan = [
   { id: "device", delay: 850 },
   { id: "car", delay: 500 },
   { id: "trophy", delay: 700 },
 ] as const;
 
-type Interactive3DAsset = (typeof interactive3DLoadPlan)[number]["id"];
+type Interactive3DAsset = (typeof baseInteractive3DLoadPlan)[number]["id"];
 
 type SmartAssetImageProps = ImgHTMLAttributes<HTMLImageElement> & {
   src: string;
@@ -103,6 +104,20 @@ function SmartAssetImage({ src, preferPngVariant = true, onError, ...props }: Sm
   return <img {...props} src={currentSrc} onError={handleError} />;
 }
 
+function getInteractive3DLoadPlan() {
+  const qualityTier = getThreeQualityTier();
+
+  if (qualityTier === "low") {
+    return baseInteractive3DLoadPlan.filter((asset) => asset.id === "device");
+  }
+
+  if (qualityTier === "balanced") {
+    return baseInteractive3DLoadPlan.filter((asset) => asset.id !== "trophy");
+  }
+
+  return baseInteractive3DLoadPlan;
+}
+
 export function RoomPortfolioHero() {
   const scope = useRef<HTMLElement>(null);
   const [activeScreenSection, setActiveScreenSection] = useState("inicio");
@@ -116,6 +131,7 @@ export function RoomPortfolioHero() {
     let disposed = false;
     let timeoutId = 0;
     let idleId: number | undefined;
+    const interactive3DLoadPlan = getInteractive3DLoadPlan();
     const idleWindow = window as Window & {
       requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
       cancelIdleCallback?: (handle: number) => void;

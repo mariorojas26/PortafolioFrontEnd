@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { desk3dTransforms, type Desk3DAssetTransform, type Desk3DTransforms } from "../data/desk3dTransforms";
+import { getThreeRenderSettings } from "../lib/threePerformance";
 
 const CAR_URL = "/assets/3d/toyota_gr_supra.glb";
 const TABLE_Y = -0.52;
@@ -17,10 +18,6 @@ type LoadedCar = {
 type GltfTextureParser = {
   getDependency: (type: "texture", index: number) => Promise<THREE.Texture>;
 };
-
-function getRenderPixelRatio() {
-  return Math.min(Math.max(window.devicePixelRatio * 1.25, 1.75), 2.65);
-}
 
 function disposeObject(object: THREE.Object3D) {
   object.traverse((child) => {
@@ -99,12 +96,12 @@ function applySilhouetteHover(car: LoadedCar, transform: Desk3DAssetTransform, h
   car.silhouetteRoot.scale.set(transform.scale * spread, transform.scale, transform.scale * spread);
 }
 
-async function prepareModel(model: THREE.Object3D, renderer: THREE.WebGLRenderer, parser: GltfTextureParser) {
+async function prepareModel(model: THREE.Object3D, renderer: THREE.WebGLRenderer, parser: GltfTextureParser, useRealtimeShadows: boolean) {
   const texturePromises: Promise<void>[] = [];
 
   model.traverse((child) => {
     if (!(child instanceof THREE.Mesh)) return;
-    child.castShadow = true;
+    child.castShadow = useRealtimeShadows;
     child.receiveShadow = false;
 
     const materials = Array.isArray(child.material) ? child.material : [child.material];
@@ -215,11 +212,12 @@ export function MonitorToyCar3D() {
     if (!host) return;
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const renderSettings = getThreeRenderSettings("medium");
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
-      antialias: true,
+      antialias: renderSettings.antialias,
       powerPreference: "high-performance",
     });
     const raycaster = new THREE.Raycaster();
@@ -228,9 +226,11 @@ export function MonitorToyCar3D() {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.98;
-    renderer.setPixelRatio(getRenderPixelRatio());
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setPixelRatio(renderSettings.pixelRatio);
+    renderer.shadowMap.enabled = renderSettings.useRealtimeShadows;
+    if (renderSettings.useRealtimeShadows) {
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
     host.appendChild(renderer.domElement);
 
     camera.position.set(1.95, 1.15, 5.4);
@@ -240,8 +240,8 @@ export function MonitorToyCar3D() {
 
     const keyLight = new THREE.DirectionalLight(0xfff1dc, 2.3);
     keyLight.position.set(-3.8, 5.8, 3.3);
-    keyLight.castShadow = true;
-    keyLight.shadow.mapSize.set(1024, 1024);
+    keyLight.castShadow = renderSettings.useRealtimeShadows;
+    keyLight.shadow.mapSize.set(renderSettings.shadowMapSize, renderSettings.shadowMapSize);
     keyLight.shadow.radius = 9;
     keyLight.shadow.camera.left = -2;
     keyLight.shadow.camera.right = 2;
@@ -291,7 +291,7 @@ export function MonitorToyCar3D() {
       const height = Math.max(1, Math.round(rect.height));
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      renderer.setPixelRatio(getRenderPixelRatio());
+      renderer.setPixelRatio(renderSettings.pixelRatio);
       renderer.setSize(width, height, false);
       requestRender();
     };
@@ -323,7 +323,7 @@ export function MonitorToyCar3D() {
       root.add(model);
       applyCarTransform({ root, model, silhouetteRoot, silhouetteMaterials }, transformRef.current);
 
-      await prepareModel(model, renderer, gltf.parser);
+      await prepareModel(model, renderer, gltf.parser, renderSettings.useRealtimeShadows);
       if (!alive) {
         disposeObject(gltf.scene);
         return;

@@ -2,11 +2,12 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { desk3dTransforms, type Desk3DAssetTransform, type Desk3DShadowTransform, type Desk3DTransforms } from "../data/desk3dTransforms";
+import { getThreeRenderSettings } from "../lib/threePerformance";
 
 const TROPHY_URL = "/assets/3d/trofeoVTEX.glb";
 const DESK_TRANSFORMS_CHANGE_EVENT = "desk3d-transforms-change";
 const TABLE_Y = -0.62;
-const TROPHY_INTERACTION_ENABLED = false;
+const TROPHY_INTERACTION_ENABLED = true;
 
 type LoadedTrophy = {
   root: THREE.Group;
@@ -43,10 +44,6 @@ function applyTrophyTransform(trophy: LoadedTrophy | null, transform: Desk3DAsse
   });
 }
 
-function getRenderPixelRatio() {
-  return Math.min(Math.max(window.devicePixelRatio * 1.05, 1.45), 1.85);
-}
-
 function disposeObject(object: THREE.Object3D) {
   object.traverse((child) => {
     if (!(child instanceof THREE.Mesh)) return;
@@ -57,13 +54,13 @@ function disposeObject(object: THREE.Object3D) {
   });
 }
 
-function prepareModel(model: THREE.Object3D, renderer: THREE.WebGLRenderer) {
+function prepareModel(model: THREE.Object3D, renderer: THREE.WebGLRenderer, useRealtimeShadows: boolean) {
   const glowMaterials: THREE.MeshStandardMaterial[] = [];
 
   model.traverse((child) => {
     if (!(child instanceof THREE.Mesh)) return;
 
-    child.castShadow = true;
+    child.castShadow = useRealtimeShadows;
     child.receiveShadow = false;
 
     const materials = Array.isArray(child.material) ? child.material : [child.material];
@@ -124,11 +121,12 @@ export function VtexTrophy3D() {
     if (!host) return;
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const renderSettings = getThreeRenderSettings("large");
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(26, 1, 0.1, 100);
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
-      antialias: true,
+      antialias: renderSettings.antialias,
       powerPreference: "high-performance",
     });
     const raycaster = new THREE.Raycaster();
@@ -137,9 +135,11 @@ export function VtexTrophy3D() {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.92;
-    renderer.setPixelRatio(getRenderPixelRatio());
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setPixelRatio(renderSettings.pixelRatio);
+    renderer.shadowMap.enabled = renderSettings.useRealtimeShadows;
+    if (renderSettings.useRealtimeShadows) {
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
     host.appendChild(renderer.domElement);
 
     camera.position.set(1.2, 1.02, 7.45);
@@ -149,8 +149,8 @@ export function VtexTrophy3D() {
 
     const keyLight = new THREE.DirectionalLight(0xffeed8, 2.4);
     keyLight.position.set(-3.8, 5.2, 3.2);
-    keyLight.castShadow = true;
-    keyLight.shadow.mapSize.set(1024, 1024);
+    keyLight.castShadow = renderSettings.useRealtimeShadows;
+    keyLight.shadow.mapSize.set(renderSettings.shadowMapSize, renderSettings.shadowMapSize);
     keyLight.shadow.radius = 8;
     keyLight.shadow.camera.left = -2;
     keyLight.shadow.camera.right = 2;
@@ -183,7 +183,7 @@ export function VtexTrophy3D() {
     shadow.rotation.x = -Math.PI / 2;
     shadow.position.set(0.02, TABLE_Y - 0.012, 0.06);
     shadow.scale.set(1.1, 0.42, 1);
-    shadow.receiveShadow = true;
+    shadow.receiveShadow = renderSettings.useRealtimeShadows;
     scene.add(shadow);
 
     let alive = true;
@@ -215,7 +215,7 @@ export function VtexTrophy3D() {
       const height = Math.max(1, Math.round(rect.height));
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      renderer.setPixelRatio(getRenderPixelRatio());
+      renderer.setPixelRatio(renderSettings.pixelRatio);
       renderer.setSize(width, height, false);
       requestRender();
     };
@@ -245,7 +245,7 @@ export function VtexTrophy3D() {
       const root = new THREE.Group();
       root.add(model);
 
-      const glowMaterials = prepareModel(model, renderer);
+      const glowMaterials = prepareModel(model, renderer, renderSettings.useRealtimeShadows);
       scene.add(root);
       const loadedTrophy = {
         root,
@@ -273,12 +273,26 @@ export function VtexTrophy3D() {
 
     const getHover = (event: PointerEvent) => {
       const rect = host.getBoundingClientRect();
-      pointer.set(((event.clientX - rect.left) / rect.width - 0.5) * 2, -(((event.clientY - rect.top) / rect.height - 0.5) * 2));
+      const localX = (event.clientX - rect.left) / rect.width;
+      const localY = (event.clientY - rect.top) / rect.height;
+      pointer.set((localX - 0.5) * 2, -((localY - 0.5) * 2));
       raycaster.setFromCamera(pointer, camera);
 
       const trophy = loadedTrophyRef.current;
       if (!trophy) return false;
-      return raycaster.intersectObject(trophy.model, true).length > 0;
+      if (raycaster.intersectObject(trophy.model, true).length > 0) return true;
+
+      const visualHoverArea = ((localX - 0.54) / 0.2) ** 2 + ((localY - 0.66) / 0.24) ** 2 < 1;
+      if (visualHoverArea) return true;
+
+      const center = new THREE.Vector3();
+      trophy.root.getWorldPosition(center);
+      center.project(camera);
+      const trophyX = (center.x * 0.5 + 0.5) * rect.width;
+      const trophyY = (-center.y * 0.5 + 0.5) * rect.height;
+      const distance = Math.hypot(event.clientX - rect.left - trophyX, event.clientY - rect.top - trophyY);
+      const nearRadius = THREE.MathUtils.clamp(rect.width * 0.14, 58, 96);
+      return distance < nearRadius;
     };
 
     const onPointerMove = (event: PointerEvent) => {
@@ -310,39 +324,20 @@ export function VtexTrophy3D() {
 
       let shouldContinue = false;
       const trophy = loadedTrophyRef.current;
-      if (trophy && !reduceMotion && TROPHY_INTERACTION_ENABLED) {
-        const currentTransform = transformRef.current;
-        const currentShadow = shadowRef.current;
-        hoverProgress = THREE.MathUtils.lerp(hoverProgress, targetHover, targetHover > hoverProgress ? 0.3 : 0.14);
-        hoverPulse = THREE.MathUtils.lerp(hoverPulse, 0, 0.12);
+      if (trophy && TROPHY_INTERACTION_ENABLED) {
+        hoverProgress = reduceMotion ? targetHover : THREE.MathUtils.lerp(hoverProgress, targetHover, targetHover > hoverProgress ? 0.26 : 0.14);
+        hoverPulse = reduceMotion ? 0 : THREE.MathUtils.lerp(hoverPulse, 0, 0.14);
 
-        const lift = Math.sin(hoverProgress * Math.PI) * 0.105 + hoverPulse * 0.045;
-        trophy.root.position.x = THREE.MathUtils.lerp(trophy.root.position.x, currentTransform.position[0], 0.24);
-        trophy.root.position.y = THREE.MathUtils.lerp(trophy.root.position.y, currentTransform.position[1] + lift, 0.24);
-        trophy.root.position.z = THREE.MathUtils.lerp(trophy.root.position.z, currentTransform.position[2], 0.24);
-        trophy.root.rotation.x = THREE.MathUtils.lerp(trophy.root.rotation.x, currentTransform.rotation[0] - hoverProgress * 0.05, 0.22);
-        trophy.root.rotation.y = THREE.MathUtils.lerp(trophy.root.rotation.y, currentTransform.rotation[1] + hoverProgress * 0.18 + hoverPulse * 0.08, 0.22);
-        trophy.root.rotation.z = THREE.MathUtils.lerp(trophy.root.rotation.z, currentTransform.rotation[2] + hoverProgress * 0.045, 0.22);
-        trophy.root.scale.setScalar(THREE.MathUtils.lerp(trophy.root.scale.x, currentTransform.scale + hoverProgress * 0.035, 0.2));
-
-        trophy.shadow.position.x = currentTransform.position[0] + 0.02;
-        trophy.shadow.position.z = currentTransform.position[2] + 0.06;
-        trophy.shadow.material.opacity = THREE.MathUtils.lerp(currentShadow.opacity, currentShadow.hoverOpacity, hoverProgress);
-        trophy.shadow.scale.set(currentShadow.scaleX + hoverProgress * 0.18, currentShadow.scaleZ + hoverProgress * 0.08, 1);
-        trophy.glow.intensity = THREE.MathUtils.lerp(0, 1.18, hoverProgress) + hoverPulse * 0.4;
+        trophy.glow.intensity = THREE.MathUtils.lerp(0, 0.46, hoverProgress) + hoverPulse * 0.1;
         trophy.glowMaterials.forEach((material) => {
-          material.emissiveIntensity = THREE.MathUtils.lerp(0.035, 0.42, hoverProgress) + hoverPulse * 0.16;
+          material.emissiveIntensity = THREE.MathUtils.lerp(0.035, 0.18, hoverProgress) + hoverPulse * 0.04;
           material.needsUpdate = true;
         });
 
         setHint(hoverProgress > 0.08 || isHovered);
         shouldContinue =
           Math.abs(hoverProgress - targetHover) > 0.003 ||
-          hoverPulse > 0.003 ||
-          Math.abs(trophy.root.position.x - currentTransform.position[0]) > 0.003 ||
-          Math.abs(trophy.root.position.y - (currentTransform.position[1] + lift)) > 0.003 ||
-          Math.abs(trophy.root.position.z - currentTransform.position[2]) > 0.003 ||
-          Math.abs(trophy.root.scale.x - (currentTransform.scale + hoverProgress * 0.035)) > 0.003;
+          hoverPulse > 0.003;
       } else if (trophy) {
         trophy.glow.intensity = 0;
         trophy.glowMaterials.forEach((material) => {
@@ -429,7 +424,7 @@ export function VtexTrophy3D() {
       <div className="vtex-trophy-contact-shadow" aria-hidden="true" />
       <div className="vtex-trophy-action-glow" aria-hidden="true" />
       <div className="object-action-label object-action-label--trophy" aria-hidden="true">
-        VTEX IO
+        Experiencia VTEX
       </div>
     </div>
   );
